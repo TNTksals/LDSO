@@ -18,7 +18,8 @@ using namespace std;
 
 using ldso::internal::CalibHessian;
 
-namespace ldso {
+namespace ldso
+{
     class FullSystem;
 
     /**
@@ -26,7 +27,8 @@ namespace ldso {
      *
      * loop closing is running in a single thread, receiving new keyframes from the front end. It will seprate all keyframes into several "consistent groups", and if the newest keyframe seems to be consistent with a previous group, we say a loop closure is detected. And once we find a loop, we will check the sim3 and correct it using a global bundle adjustment.
      */
-    class LoopClosing {
+    class LoopClosing
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -35,8 +37,10 @@ namespace ldso {
 
         LoopClosing(FullSystem *fullSystem);
 
-        ~LoopClosing() {
-            if (idepthMap) delete[] idepthMap;
+        ~LoopClosing()
+        {
+            if (idepthMap)
+                delete[] idepthMap;
         }
 
         void InsertKeyFrame(shared_ptr<Frame> &frame);
@@ -61,21 +65,26 @@ namespace ldso {
          * set main loop to finish
          * @param finish
          */
-        void SetFinish(bool finish = true) {
+        void SetFinish(bool finish = true)
+        {
 
             needFinish = finish;
             LOG(INFO) << "wait loop closing to join" << endl;
             mainLoop.join();
-            while (globalMap && globalMap->Idle() == false) {
+            while (globalMap && globalMap->Idle() == false)
+            {
                 usleep(10000);
             }
 
-            if (needPoseGraph) {
-                if (globalMap) {
+            if (needPoseGraph)
+            {
+                if (globalMap)
+                {
                     globalMap->OptimizeALLKFs();
                     usleep(5000);
                 }
-                while (globalMap && globalMap->Idle() == false) {
+                while (globalMap && globalMap->Idle() == false)
+                {
                     usleep(10000);
                 }
             }
@@ -98,7 +107,7 @@ namespace ldso {
 
         // data
         FullSystem *fullSystem;
-        shared_ptr<Map> globalMap = nullptr;  // global map
+        shared_ptr<Map> globalMap = nullptr; // global map
 
         // shared_ptr<KeyFrameDatabase> kfDB = nullptr;
         shared_ptr<DBoW3::Database> kfDB = nullptr;
@@ -106,25 +115,24 @@ namespace ldso {
 
         shared_ptr<Frame> candidateKF = nullptr;
         vector<shared_ptr<Frame>> allKF;
-        map<DBoW3::EntryId, shared_ptr<Frame>> checkedKFs;    // keyframes that are recorded.
+        map<DBoW3::EntryId, shared_ptr<Frame>> checkedKFs; // keyframes that are recorded.
         int maxKFId = 0;
         shared_ptr<Frame> currentKF = nullptr;
 
         // loop kf queue
         deque<shared_ptr<Frame>> KFqueue;
         mutex mutexKFQueue;
-        shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr;  // Need distance map to correct the sim3 error
+        shared_ptr<CoarseDistanceMap> coarseDistanceMap = nullptr; // Need distance map to correct the sim3 error
         bool finished = false;
         shared_ptr<CalibHessian> Hcalib = nullptr;
         bool needFinish = false;
         bool needPoseGraph = false;
-        float *idepthMap = nullptr;   // i hate this float*
+        float *idepthMap = nullptr; // i hate this float*
         thread mainLoop;
 
         // parameters
         double minScoreAccept = 0.06;
         int kfGap = 10;
-
     };
 }
 

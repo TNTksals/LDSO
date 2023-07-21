@@ -4,9 +4,11 @@
 
 #include "NumTypes.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
         class CalibHessian;
     }
 
@@ -14,7 +16,8 @@ namespace ldso {
      * @brief Pinhole camera model
      * the parameters will be estimated during optimization
      */
-    struct Camera {
+    struct Camera
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 

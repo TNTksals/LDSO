@@ -2,18 +2,22 @@
 #include "internal/OptimizationBackend/AccumulatedSCHessian.h"
 #include "internal/PointHessian.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
-        void AccumulatedSCHessianSSE::addPoint(shared_ptr<PointHessian> p, bool shiftPriorToZero, int tid) {
+        void AccumulatedSCHessianSSE::addPoint(shared_ptr<PointHessian> p, bool shiftPriorToZero, int tid)
+        {
 
             int ngoodres = 0;
             for (auto r : p->residuals)
                 if (r->isActive())
                     ngoodres++;
 
-            if (ngoodres == 0) {
+            if (ngoodres == 0)
+            {
                 p->HdiF = 0;
                 p->bdSumF = 0;
                 p->idepth_hessian = 0;
@@ -22,23 +26,28 @@ namespace ldso {
             }
 
             float H = p->Hdd_accAF + p->Hdd_accLF + p->priorF;
-            if (H < 1e-10) H = 1e-10;
+            if (H < 1e-10)
+                H = 1e-10;
             p->idepth_hessian = H;
             p->HdiF = 1.0 / H;
             p->bdSumF = p->bd_accAF + p->bd_accLF;
-            if (shiftPriorToZero) p->bdSumF += p->priorF * p->deltaF;
+            if (shiftPriorToZero)
+                p->bdSumF += p->priorF * p->deltaF;
             VecCf Hcd = p->Hcd_accAF + p->Hcd_accLF;
             accHcc[tid].update(Hcd, Hcd, p->HdiF);
             accbc[tid].update(Hcd, p->bdSumF * p->HdiF);
 
-            assert(std::isfinite((float) (p->HdiF)));
+            assert(std::isfinite((float)(p->HdiF)));
 
             int nFrames2 = nframes[tid] * nframes[tid];
-            for (auto r1 : p->residuals) {
-                if (!r1->isActive()) continue;
+            for (auto r1 : p->residuals)
+            {
+                if (!r1->isActive())
+                    continue;
                 int r1ht = r1->hostIDX + r1->targetIDX * nframes[tid];
 
-                for (auto r2 : p->residuals) {
+                for (auto r2 : p->residuals)
+                {
                     if (!r2->isActive())
                         continue;
 
@@ -51,20 +60,23 @@ namespace ldso {
         }
 
         void AccumulatedSCHessianSSE::stitchDoubleInternal(
-                MatXX *H, VecX *b, EnergyFunctional const *const EF,
-                int min, int max, Vec10 *stats, int tid) {
+            MatXX *H, VecX *b, EnergyFunctional const *const EF,
+            int min, int max, Vec10 *stats, int tid)
+        {
             int toAggregate = NUM_THREADS;
-            if (tid == -1) {
+            if (tid == -1)
+            {
                 toAggregate = 1;
                 tid = 0;
-            }    // special case: if we dont do multithreading, dont aggregate.
-            if (min == max) return;
-
+            } // special case: if we dont do multithreading, dont aggregate.
+            if (min == max)
+                return;
 
             int nf = nframes[0];
             int nframes2 = nf * nf;
 
-            for (int k = min; k < max; k++) {
+            for (int k = min; k < max; k++)
+            {
                 int i = k % nf;
                 int j = k / nf;
 
@@ -75,7 +87,8 @@ namespace ldso {
                 Mat8C Hpc = Mat8C::Zero();
                 Vec8 bp = Vec8::Zero();
 
-                for (int tid2 = 0; tid2 < toAggregate; tid2++) {
+                for (int tid2 = 0; tid2 < toAggregate; tid2++)
+                {
                     accE[tid2][ijIdx].finish();
                     accEB[tid2][ijIdx].finish();
                     Hpc += accE[tid2][ijIdx].A1m.cast<double>();
@@ -87,17 +100,19 @@ namespace ldso {
                 b[tid].segment<8>(iIdx) += EF->adHost[ijIdx] * bp;
                 b[tid].segment<8>(jIdx) += EF->adTarget[ijIdx] * bp;
 
-
-                for (int k = 0; k < nf; k++) {
+                for (int k = 0; k < nf; k++)
+                {
                     int kIdx = CPARS + k * 8;
                     int ijkIdx = ijIdx + k * nframes2;
                     int ikIdx = i + nf * k;
 
                     Mat88 accDM = Mat88::Zero();
 
-                    for (int tid2 = 0; tid2 < toAggregate; tid2++) {
+                    for (int tid2 = 0; tid2 < toAggregate; tid2++)
+                    {
                         accD[tid2][ijkIdx].finish();
-                        if (accD[tid2][ijkIdx].num == 0) continue;
+                        if (accD[tid2][ijkIdx].num == 0)
+                            continue;
                         accDM += accD[tid2][ijkIdx].A1m.cast<double>();
                     }
 
@@ -108,8 +123,10 @@ namespace ldso {
                 }
             }
 
-            if (min == 0) {
-                for (int tid2 = 0; tid2 < toAggregate; tid2++) {
+            if (min == 0)
+            {
+                for (int tid2 = 0; tid2 < toAggregate; tid2++)
+                {
                     accHcc[tid2].finish();
                     accbc[tid2].finish();
                     H[tid].topLeftCorner<CPARS, CPARS>() += accHcc[tid2].A1m.cast<double>();
@@ -118,7 +135,8 @@ namespace ldso {
             }
         }
 
-        void AccumulatedSCHessianSSE::stitchDouble(MatXX &H, VecX &b, const EnergyFunctional *const EF, int tid) {
+        void AccumulatedSCHessianSSE::stitchDouble(MatXX &H, VecX &b, const EnergyFunctional *const EF, int tid)
+        {
 
             int nf = nframes[0];
             int nframes2 = nf * nf;
@@ -126,9 +144,9 @@ namespace ldso {
             H = MatXX::Zero(nf * 8 + CPARS, nf * 8 + CPARS);
             b = VecX::Zero(nf * 8 + CPARS);
 
-
             for (int i = 0; i < nf; i++)
-                for (int j = 0; j < nf; j++) {
+                for (int j = 0; j < nf; j++)
+                {
                     int iIdx = CPARS + i * 8;
                     int jIdx = CPARS + j * 8;
                     int ijIdx = i + nf * j;
@@ -145,13 +163,15 @@ namespace ldso {
                     b.segment<8>(iIdx) += EF->adHost[ijIdx] * accEBV;
                     b.segment<8>(jIdx) += EF->adTarget[ijIdx] * accEBV;
 
-                    for (int k = 0; k < nf; k++) {
+                    for (int k = 0; k < nf; k++)
+                    {
                         int kIdx = CPARS + k * 8;
                         int ijkIdx = ijIdx + k * nframes2;
                         int ikIdx = i + nf * k;
 
                         accD[tid][ijkIdx].finish();
-                        if (accD[tid][ijkIdx].num == 0) continue;
+                        if (accD[tid][ijkIdx].num == 0)
+                            continue;
                         Mat88 accDM = accD[tid][ijkIdx].A1m.cast<double>();
 
                         H.block<8, 8>(iIdx, iIdx) += EF->adHost[ijIdx] * accDM * EF->adHost[ikIdx].transpose();
@@ -170,7 +190,8 @@ namespace ldso {
             b.head<CPARS>() = accbc[tid].A1m.cast<double>();
 
             // ----- new: copy transposed parts for calibration only.
-            for (int h = 0; h < nf; h++) {
+            for (int h = 0; h < nf; h++)
+            {
                 int hIdx = CPARS + h * 8;
                 H.block<CPARS, 8>(0, hIdx).noalias() = H.block<8, CPARS>(hIdx, 0).transpose();
             }

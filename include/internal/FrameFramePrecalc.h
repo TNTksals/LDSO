@@ -10,23 +10,26 @@
 
 using namespace std;
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
         /**
          * in the inverse depth parameterized bundle adjustment, an observation is related with two frames: the host and the target
          * but we just need to compute once to each two frame pairs, not each observation
          * this structure is used for this precalculation
          */
-        struct FrameFramePrecalc {
+        struct FrameFramePrecalc
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             void Set(shared_ptr<FrameHessian> host, shared_ptr<FrameHessian> target, shared_ptr<CalibHessian> HCalib);
 
-            weak_ptr<FrameHessian> host; // defines row
-            weak_ptr<FrameHessian> target;   // defines column
+            weak_ptr<FrameHessian> host;   // defines row
+            weak_ptr<FrameHessian> target; // defines column
 
             // precalc values
 

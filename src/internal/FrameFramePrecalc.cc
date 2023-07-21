@@ -1,10 +1,13 @@
 #include "internal/FrameFramePrecalc.h"
 
-namespace ldso {
-    namespace internal {
+namespace ldso
+{
+    namespace internal
+    {
 
         void FrameFramePrecalc::Set(shared_ptr<FrameHessian> host, shared_ptr<FrameHessian> target,
-                                    shared_ptr<CalibHessian> HCalib) {
+                                    shared_ptr<CalibHessian> HCalib)
+        {
 
             this->host = host;
             this->target = target;
@@ -30,7 +33,8 @@ namespace ldso {
             PRE_KtTll = K * PRE_tTll;
 
             PRE_aff_mode = AffLight::fromToVecExposure(host->ab_exposure, target->ab_exposure, host->aff_g2l(),
-                                                       target->aff_g2l()).cast<float>();
+                                                       target->aff_g2l())
+                               .cast<float>();
             PRE_b0_mode = host->aff_g2l_0().b;
         }
 

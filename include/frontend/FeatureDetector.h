@@ -12,9 +12,11 @@
 
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
-    class FeatureDetector {
+    class FeatureDetector
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         const int HALF_PATCH_SIZE = 15; // half patch size for computing ORB descriptor
@@ -47,7 +49,8 @@ namespace ldso {
          * @return
          */
         inline float
-        ShiTomasiScore(shared_ptr<Frame> &frame, const float &u, const float &v, int halfbox = 4, int level = 0) {
+        ShiTomasiScore(shared_ptr<Frame> &frame, const float &u, const float &v, int halfbox = 4, int level = 0)
+        {
 
             float dXX = 0.0;
             float dYY = 0.0;
@@ -64,8 +67,10 @@ namespace ldso {
                 return 0.0; // patch is too close to the boundary
             const int stride = wG[level];
 
-            for (int y = y_min; y < y_max; ++y) {
-                for (int x = x_min; x < x_max; ++x) {
+            for (int y = y_min; y < y_max; ++y)
+            {
+                for (int x = x_min; x < x_max; ++x)
+                {
                     float dx = frame->frameHessian->dIp[level][y * stride + x][1];
                     float dy = frame->frameHessian->dIp[level][y * stride + x][2];
                     dXX += dx * dx;
@@ -88,7 +93,8 @@ namespace ldso {
          * @param u_max
          * @return
          */
-        inline float IC_Angle(const Vec3f *image, const Vec2f &pt, int level = 0) {
+        inline float IC_Angle(const Vec3f *image, const Vec2f &pt, int level = 0)
+        {
 
             float m_01 = 0, m_10 = 0;
             const Vec3f *center = image + int(pt[1]) * wG[level] + int(pt[0]);
@@ -99,11 +105,13 @@ namespace ldso {
 
             // Go line by line in the circular patch
             int step = wG[level];
-            for (int v = 1; v <= HALF_PATCH_SIZE; ++v) {
+            for (int v = 1; v <= HALF_PATCH_SIZE; ++v)
+            {
                 // Proceed over the two lines
                 float v_sum = 0;
                 int d = umax[v];
-                for (int u = -d; u <= d; ++u) {
+                for (int u = -d; u <= d; ++u)
+                {
                     float val_plus = center[u + v * step][0], val_minus = center[u - v * step][0];
                     v_sum += (val_plus - val_minus);
                     m_10 += u * (val_plus + val_minus);
@@ -115,11 +123,11 @@ namespace ldso {
 
         // configurations
         // unused?
-        //float minScoreTH = 0.05;
-        //float minDistance = 10;
+        // float minScoreTH = 0.05;
+        // float minDistance = 10;
 
         // static data
-        std::vector<int> umax;  // used to compute rotation
+        std::vector<int> umax; // used to compute rotation
     };
 }
 

@@ -6,11 +6,14 @@
 #include "Settings.h"
 #include "internal/OptimizationBackend/EnergyFunctional.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
-        double PointFrameResidual::linearize(shared_ptr<CalibHessian> &HCalib) {
+        double PointFrameResidual::linearize(shared_ptr<CalibHessian> &HCalib)
+        {
 
             // compute jacobians
             state_NewEnergyWithOutlier = -1;
@@ -47,7 +50,7 @@ namespace ldso {
             float d_d_x, d_d_y;
 
             {
-                float drescale, u, v, new_idepth;  // data in target
+                float drescale, u, v, new_idepth; // data in target
                 // NOTE u = X/Z, v=Y/Z in target
                 float Ku, Kv;
                 Vec3f KliP;
@@ -55,7 +58,8 @@ namespace ldso {
                 // 重投影
                 shared_ptr<PointHessian> p = point.lock();
                 if (!projectPoint(p->u, p->v, p->idepth_zero_scaled, 0, 0, HCalib,
-                                  PRE_RTll_0, PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth)) {
+                                  PRE_RTll_0, PRE_tTll_0, drescale, u, v, Ku, Kv, KliP, new_idepth))
+                {
                     state_NewState = ResState::OOB;
                     return state_energy;
                 }
@@ -104,7 +108,6 @@ namespace ldso {
                 d_xi_y[5] = u * HCalib->fyl();
             }
 
-
             {
                 J->Jpdxi[0] = d_xi_x;
                 J->Jpdxi[1] = d_xi_y;
@@ -114,7 +117,6 @@ namespace ldso {
 
                 J->Jpdd[0] = d_d_x;
                 J->Jpdd[1] = d_d_y;
-
             }
 
             float JIdxJIdx_00 = 0, JIdxJIdx_11 = 0, JIdxJIdx_10 = 0;
@@ -123,11 +125,13 @@ namespace ldso {
 
             float wJI2_sum = 0;
 
-            for (int idx = 0; idx < patternNum; idx++) {
+            for (int idx = 0; idx < patternNum; idx++)
+            {
                 float Ku, Kv;
                 shared_ptr<PointHessian> p = point.lock();
                 if (!projectPoint(p->u + patternP[idx][0], p->v + patternP[idx][1], p->idepth_scaled,
-                                  PRE_KRKiTll, PRE_KtTll, Ku, Kv)) {
+                                  PRE_KRKiTll, PRE_KtTll, Ku, Kv))
+                {
                     state_NewState = ResState::OOB;
                     return state_energy;
                 }
@@ -136,14 +140,14 @@ namespace ldso {
                 projectedTo[idx][1] = Kv;
 
                 Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
-                float residual = hitColor[0] - (float) (affLL[0] * color[idx] + affLL[1]);
+                float residual = hitColor[0] - (float)(affLL[0] * color[idx] + affLL[1]);
 
                 float drdA = (color[idx] - b0);
-                if (!std::isfinite((float) hitColor[0])) {
+                if (!std::isfinite((float)hitColor[0]))
+                {
                     state_NewState = ResState::OOB;
                     return state_energy;
                 }
-
 
                 float w = sqrtf(setting_outlierTHSumComponent /
                                 (setting_outlierTHSumComponent + hitColor.tail<2>().squaredNorm()));
@@ -153,7 +157,8 @@ namespace ldso {
                 energyLeft += w * w * hw * residual * residual * (2 - hw);
 
                 {
-                    if (hw < 1) hw = sqrtf(hw);
+                    if (hw < 1)
+                        hw = sqrtf(hw);
                     hw = hw * w;
 
                     hitColor[1] *= hw;
@@ -181,9 +186,10 @@ namespace ldso {
 
                     wJI2_sum += hw * hw * (hitColor[1] * hitColor[1] + hitColor[2] * hitColor[2]);
 
-                    if (setting_affineOptModeA < 0) J->JabF[0][idx] = 0;
-                    if (setting_affineOptModeB < 0) J->JabF[1][idx] = 0;
-
+                    if (setting_affineOptModeA < 0)
+                        J->JabF[0][idx] = 0;
+                    if (setting_affineOptModeB < 0)
+                        J->JabF[1][idx] = 0;
                 }
             }
 
@@ -202,10 +208,13 @@ namespace ldso {
 
             state_NewEnergyWithOutlier = energyLeft;
 
-            if (energyLeft > std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH) || wJI2_sum < 2) {
+            if (energyLeft > std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH) || wJI2_sum < 2)
+            {
                 energyLeft = std::max<float>(f->frameEnergyTH, ftarget->frameEnergyTH);
                 state_NewState = ResState::OUTLIER;
-            } else {
+            }
+            else
+            {
                 state_NewState = ResState::IN;
             }
 
@@ -213,29 +222,27 @@ namespace ldso {
             return energyLeft;
         }
 
-        void PointFrameResidual::fixLinearizationF(shared_ptr<EnergyFunctional> ef) {
+        void PointFrameResidual::fixLinearizationF(shared_ptr<EnergyFunctional> ef)
+        {
 
             Vec8f dp = ef->adHTdeltaF[hostIDX + ef->nFrames * targetIDX];
 
             // compute Jp*delta
-            __m128 Jp_delta_x = _mm_set1_ps(J->Jpdxi[0].dot(dp.head<6>())
-                                            + J->Jpdc[0].dot(ef->cDeltaF)
-                                            + J->Jpdd[0] * point.lock()->deltaF);
-            __m128 Jp_delta_y = _mm_set1_ps(J->Jpdxi[1].dot(dp.head<6>())
-                                            + J->Jpdc[1].dot(ef->cDeltaF)
-                                            + J->Jpdd[1] * point.lock()->deltaF);
+            __m128 Jp_delta_x = _mm_set1_ps(J->Jpdxi[0].dot(dp.head<6>()) + J->Jpdc[0].dot(ef->cDeltaF) + J->Jpdd[0] * point.lock()->deltaF);
+            __m128 Jp_delta_y = _mm_set1_ps(J->Jpdxi[1].dot(dp.head<6>()) + J->Jpdc[1].dot(ef->cDeltaF) + J->Jpdd[1] * point.lock()->deltaF);
 
-            __m128 delta_a = _mm_set1_ps((float) (dp[6]));
-            __m128 delta_b = _mm_set1_ps((float) (dp[7]));
+            __m128 delta_a = _mm_set1_ps((float)(dp[6]));
+            __m128 delta_b = _mm_set1_ps((float)(dp[7]));
 
-            for (int i = 0; i < patternNum; i += 4) {
+            for (int i = 0; i < patternNum; i += 4)
+            {
                 // PATTERN: rtz = resF - [JI*Jp Ja]*delta.
-                __m128 rtz = _mm_load_ps(((float *) &J->resF) + i);
-                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *) (J->JIdx)) + i), Jp_delta_x));
-                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *) (J->JIdx + 1)) + i), Jp_delta_y));
-                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *) (J->JabF)) + i), delta_a));
-                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *) (J->JabF + 1)) + i), delta_b));
-                _mm_store_ps(((float *) &res_toZeroF) + i, rtz);
+                __m128 rtz = _mm_load_ps(((float *)&J->resF) + i);
+                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(J->JIdx)) + i), Jp_delta_x));
+                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(J->JIdx + 1)) + i), Jp_delta_y));
+                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(J->JabF)) + i), delta_a));
+                rtz = _mm_sub_ps(rtz, _mm_mul_ps(_mm_load_ps(((float *)(J->JabF + 1)) + i), delta_b));
+                _mm_store_ps(((float *)&res_toZeroF) + i, rtz);
             }
 
             isLinearized = true;

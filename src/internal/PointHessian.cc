@@ -2,11 +2,14 @@
 #include "internal/PointHessian.h"
 #include "internal/ImmaturePoint.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
-        PointHessian::PointHessian(shared_ptr<ImmaturePoint> rawPoint) {
+        PointHessian::PointHessian(shared_ptr<ImmaturePoint> rawPoint)
+        {
             u = rawPoint->feature->uv[0];
             v = rawPoint->feature->uv[1];
             my_type = rawPoint->my_type;

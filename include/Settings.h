@@ -3,9 +3,10 @@
 #define LDSO_SETTING_H_
 
 /// a lot many parameters set in DSO
-namespace ldso {
+namespace ldso
+{
 
-    const int PYR_LEVELS = 6;  // total image pyramids, note not all are used during tracking
+    const int PYR_LEVELS = 6; // total image pyramids, note not all are used during tracking
     const int NUM_THREADS = 6;
 
     // the config bits in solver
@@ -23,14 +24,14 @@ namespace ldso {
     const int SOLVER_ORTHOGONALIZE_X_LATER = 2048;
 
     // constants to scale the parameters in optimization
-    const float SCALE_IDEPTH = 1.0f;       // scales internal value to idepth.
-    const float SCALE_XI_ROT = 1.0f;       //
-    const float SCALE_XI_TRANS = 0.5f;     //
+    const float SCALE_IDEPTH = 1.0f;   // scales internal value to idepth.
+    const float SCALE_XI_ROT = 1.0f;   //
+    const float SCALE_XI_TRANS = 0.5f; //
     const float SCALE_F = 50.0f;
     const float SCALE_C = 50.0f;
     const float SCALE_W = 1.0f;
-    const float SCALE_A = 10.0f;           //
-    const float SCALE_B = 1000.0f;         //
+    const float SCALE_A = 10.0f;   //
+    const float SCALE_B = 1000.0f; //
 
     // inverse version
     const float SCALE_IDEPTH_INVERSE = (1.0f / SCALE_IDEPTH);
@@ -65,8 +66,8 @@ namespace ldso {
     extern int setting_margPointVisWindow;
     extern float setting_maxIdepth;
     extern float setting_maxPixSearch;
-    extern float setting_desiredImmatureDensity;                    // done
-    extern float setting_desiredPointDensity;                       // done
+    extern float setting_desiredImmatureDensity; // done
+    extern float setting_desiredPointDensity;    // done
     extern float setting_minPointsRemaining;
     extern float setting_maxLogAffFacInWindow;
     extern int setting_minFrames;
@@ -108,7 +109,7 @@ namespace ldso {
     extern float setting_useDepthWeightsCoarse;
     extern bool setting_dilateDoubleCoarse;
     extern float setting_huberTH;
-    extern bool setting_logStuff;   // whether to log
+    extern bool setting_logStuff; // whether to log
     extern float benchmarkSetting_fxfyfac;
     extern int benchmarkSetting_width;
     extern int benchmarkSetting_height;
@@ -158,7 +159,7 @@ namespace ldso {
     extern float freeDebugParam5;
     extern int benchmarkSpecialOption;
     extern bool setting_pause;
-    extern int setting_pointSelection;      // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
+    extern int setting_pointSelection; // 0-DSO's selection. 1-LDSO's selection, 2-Random selection
 
     const int patternNum = 8;
     const int patternPadding = 2;

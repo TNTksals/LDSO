@@ -11,12 +11,14 @@
 
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
     /**
      * Match structure
      */
-    struct Match {
+    struct Match
+    {
         Match(int _index1 = -1, int _index2 = -1, int _dist = -1) : index1(_index1), index2(_index2), dist(_dist) {}
 
         int index1 = -1;
@@ -24,11 +26,11 @@ namespace ldso {
         int dist = -1;
     };
 
-    class FeatureMatcher {
+    class FeatureMatcher
+    {
 
     public:
-        FeatureMatcher(float nnRatio = 0.6, bool checkRot = true) :
-                nnRatio(nnRatio), checkOrientation(checkRot) {}
+        FeatureMatcher(float nnRatio = 0.6, bool checkRot = true) : nnRatio(nnRatio), checkOrientation(checkRot) {}
 
         /// the distance of two descriptors
         static int DescriptorDistance(const unsigned char *desc1, const unsigned char *desc2);
@@ -52,7 +54,7 @@ namespace ldso {
         int SearchByBoW(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match> &matches);
 
         // draw matches, will block until user press a key, return the cv::waitkey code
-        int DrawMatches( shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match>& matches );
+        int DrawMatches(shared_ptr<Frame> frame1, shared_ptr<Frame> frame2, std::vector<Match> &matches);
 
     private:
         float nnRatio = 0.6;
@@ -62,7 +64,6 @@ namespace ldso {
         const int TH_LOW = 50;
         const int TH_HIGH = 100;
         const int HISTO_LENGTH = 30;
-
     };
 }
 

@@ -7,27 +7,37 @@
 #include "internal/GlobalCalib.h"
 #include "internal/ImmaturePoint.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib) {
+    void KeyFrameDisplay::setFromKF(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> HCalib)
+    {
 
-        if (fh->frame) {
+        if (fh->frame)
+        {
             setFromF(fh->frame, HCalib);
-        } else
+        }
+        else
             camToWorld = Sim3(fh->PRE_camToWorld.matrix());
 
         auto fr = fh->frame;
         int npoints = 0;
-        for (auto feat: fr->features) {
-            if (feat->point && feat->point->mpPH) {
+        for (auto feat : fr->features)
+        {
+            if (feat->point && feat->point->mpPH)
+            {
                 npoints++;
-            } else if (feat->status == Feature::FeatureStatus::IMMATURE && feat->ip) {
+            }
+            else if (feat->status == Feature::FeatureStatus::IMMATURE && feat->ip)
+            {
                 npoints++;
             }
         }
 
-        if (numSparseBufferSize < npoints) {
-            if (originalInputSparse != 0) delete originalInputSparse;
+        if (numSparseBufferSize < npoints)
+        {
+            if (originalInputSparse != 0)
+                delete originalInputSparse;
             numSparseBufferSize = npoints + 100;
             originalInputSparse = new InputPointSparse<MAX_RES_PER_POINT>[numSparseBufferSize];
         }
@@ -35,8 +45,10 @@ namespace ldso {
         InputPointSparse<MAX_RES_PER_POINT> *pc = originalInputSparse;
         numSparsePoints = 0;
 
-        for (auto feat: fr->features) {
-            if (feat->point && feat->point->mpPH) {
+        for (auto feat : fr->features)
+        {
+            if (feat->point && feat->point->mpPH)
+            {
                 auto p = feat->point->mpPH;
 
                 for (int i = 0; i < patternNum; i++)
@@ -57,7 +69,8 @@ namespace ldso {
         needRefresh = true;
     }
 
-    void KeyFrameDisplay::setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib) {
+    void KeyFrameDisplay::setFromF(shared_ptr<Frame> fs, shared_ptr<CalibHessian> HCalib)
+    {
 
         id = fs->id;
         fx = HCalib->fxl();
@@ -78,7 +91,8 @@ namespace ldso {
         originFrame = fs;
     }
 
-    void KeyFrameDisplay::drawCam(float lineWidth, float *color, float sizeFactor, bool drawOrig) {
+    void KeyFrameDisplay::drawCam(float lineWidth, float *color, float sizeFactor, bool drawOrig)
+    {
 
         if (width == 0)
             return;
@@ -93,11 +107,13 @@ namespace ldso {
         glPushMatrix();
 
         Sophus::Matrix4f m = camToWorld.matrix().cast<float>();
-        glMultMatrixf((GLfloat *) m.data());
+        glMultMatrixf((GLfloat *)m.data());
 
-        if (color == 0) {
+        if (color == 0)
+        {
             glColor3f(1, 0, 0);
-        } else
+        }
+        else
             glColor3f(color[0], color[1], color[2]);
 
         glLineWidth(lineWidth);
@@ -129,11 +145,15 @@ namespace ldso {
 
     bool KeyFrameDisplay::refreshPC(
         bool canRefresh, float scaledTH, float absTH, int mode, float minBS,
-        int sparsity, bool forceRefresh) {
+        int sparsity, bool forceRefresh)
+    {
 
-        if (forceRefresh) {
+        if (forceRefresh)
+        {
             needRefresh = true;
-        } else if (canRefresh) {
+        }
+        else if (canRefresh)
+        {
             needRefresh = needRefresh ||
                           my_scaledTH != scaledTH ||
                           my_absTH != absTH ||
@@ -142,7 +162,8 @@ namespace ldso {
                           my_sparsifyFactor != sparsity;
         }
 
-        if (!needRefresh) return false;
+        if (!needRefresh)
+            return false;
         needRefresh = false;
 
         my_scaledTH = scaledTH;
@@ -160,7 +181,8 @@ namespace ldso {
         Vec3b *tmpColorBuffer = new Vec3b[numSparsePoints * patternNum];
         int vertexBufferNumPoints = 0;
 
-        for (int i = 0; i < numSparsePoints; i++) {
+        for (int i = 0; i < numSparsePoints; i++)
+        {
 
             /* display modes:
              * my_displayMode==0 - all pts, color-coded
@@ -172,10 +194,13 @@ namespace ldso {
             if (my_displayMode == 1 && originalInputSparse[i].status != 1 &&
                 originalInputSparse[i].status != 2)
                 continue;
-            if (my_displayMode == 2 && originalInputSparse[i].status != 1) continue;
-            if (my_displayMode > 2) continue;
+            if (my_displayMode == 2 && originalInputSparse[i].status != 1)
+                continue;
+            if (my_displayMode > 2)
+                continue;
 
-            if (originalInputSparse[i].idpeth < 0) continue;
+            if (originalInputSparse[i].idpeth < 0)
+                continue;
 
             float depth = 1.0f / (originalInputSparse[i].idpeth);
             float depth4 = depth * depth;
@@ -191,40 +216,53 @@ namespace ldso {
             if (originalInputSparse[i].relObsBaseline < my_minRelBS)
                 continue;
 
-            for (int pnt = 0; pnt < patternNum; pnt++) {
+            for (int pnt = 0; pnt < patternNum; pnt++)
+            {
 
-                if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0) continue;
+                if (my_sparsifyFactor > 1 && rand() % my_sparsifyFactor != 0)
+                    continue;
                 int dx = patternP[pnt][0];
                 int dy = patternP[pnt][1];
 
                 tmpVertexBuffer[vertexBufferNumPoints][0] = ((originalInputSparse[i].u + dx) * fxi + cxi) * depth;
                 tmpVertexBuffer[vertexBufferNumPoints][1] = ((originalInputSparse[i].v + dy) * fyi + cyi) * depth;
-                tmpVertexBuffer[vertexBufferNumPoints][2] = depth * (1 + 2 * fxi * (rand() / (float) RAND_MAX - 0.5f));
+                tmpVertexBuffer[vertexBufferNumPoints][2] = depth * (1 + 2 * fxi * (rand() / (float)RAND_MAX - 0.5f));
 
-                if (my_displayMode == 0) {
-                    if (originalInputSparse[i].status == 0) {
+                if (my_displayMode == 0)
+                {
+                    if (originalInputSparse[i].status == 0)
+                    {
                         tmpColorBuffer[vertexBufferNumPoints][0] = 0;
                         tmpColorBuffer[vertexBufferNumPoints][1] = 255;
                         tmpColorBuffer[vertexBufferNumPoints][2] = 255;
-                    } else if (originalInputSparse[i].status == 1) {
+                    }
+                    else if (originalInputSparse[i].status == 1)
+                    {
                         tmpColorBuffer[vertexBufferNumPoints][0] = 0;
                         tmpColorBuffer[vertexBufferNumPoints][1] = 255;
                         tmpColorBuffer[vertexBufferNumPoints][2] = 0;
-                    } else if (originalInputSparse[i].status == 2) {
+                    }
+                    else if (originalInputSparse[i].status == 2)
+                    {
                         tmpColorBuffer[vertexBufferNumPoints][0] = 0;
                         tmpColorBuffer[vertexBufferNumPoints][1] = 0;
                         tmpColorBuffer[vertexBufferNumPoints][2] = 255;
-                    } else if (originalInputSparse[i].status == 3) {
+                    }
+                    else if (originalInputSparse[i].status == 3)
+                    {
                         tmpColorBuffer[vertexBufferNumPoints][0] = 255;
                         tmpColorBuffer[vertexBufferNumPoints][1] = 0;
                         tmpColorBuffer[vertexBufferNumPoints][2] = 0;
-                    } else {
+                    }
+                    else
+                    {
                         tmpColorBuffer[vertexBufferNumPoints][0] = 255;
                         tmpColorBuffer[vertexBufferNumPoints][1] = 255;
                         tmpColorBuffer[vertexBufferNumPoints][2] = 255;
                     }
-
-                } else {
+                }
+                else
+                {
                     tmpColorBuffer[vertexBufferNumPoints][0] = originalInputSparse[i].color[pnt];
                     tmpColorBuffer[vertexBufferNumPoints][1] = originalInputSparse[i].color[pnt];
                     tmpColorBuffer[vertexBufferNumPoints][2] = originalInputSparse[i].color[pnt];
@@ -234,14 +272,16 @@ namespace ldso {
             }
         }
 
-        if (vertexBufferNumPoints == 0) {
+        if (vertexBufferNumPoints == 0)
+        {
             delete[] tmpColorBuffer;
             delete[] tmpVertexBuffer;
             return true;
         }
 
         numGLBufferGoodPoints = vertexBufferNumPoints;
-        if (numGLBufferGoodPoints > numGLBufferPoints) {
+        if (numGLBufferGoodPoints > numGLBufferPoints)
+        {
             numGLBufferPoints = vertexBufferNumPoints * 1.3;
             vertexBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints, GL_FLOAT, 3, GL_DYNAMIC_DRAW);
             colorBuffer.Reinitialise(pangolin::GlArrayBuffer, numGLBufferPoints, GL_UNSIGNED_BYTE, 3, GL_DYNAMIC_DRAW);
@@ -252,10 +292,10 @@ namespace ldso {
         delete[] tmpColorBuffer;
         delete[] tmpVertexBuffer;
         return true;
-
     }
 
-    void KeyFrameDisplay::drawPC(float pointSize) {
+    void KeyFrameDisplay::drawPC(float pointSize)
+    {
 
         if (!bufferValid || numGLBufferGoodPoints == 0)
             return;
@@ -264,15 +304,18 @@ namespace ldso {
         glPushMatrix();
 
         Mat44f m;
-        if (originFrame) {
+        if (originFrame)
+        {
             Sim3 Swc = originFrame->getPoseOpti().inverse();
             m = Swc.matrix().cast<float>();
             scale = Swc.scale();
-        } else {
+        }
+        else
+        {
             m = camToWorld.matrix().cast<float>();
         }
 
-        glMultMatrixf((GLfloat *) m.data());
+        glMultMatrixf((GLfloat *)m.data());
         glPointSize(pointSize);
         colorBuffer.Bind();
         glColorPointer(colorBuffer.count_per_element, colorBuffer.datatype, 0, 0);
@@ -291,16 +334,22 @@ namespace ldso {
         glPopMatrix();
     }
 
-    void KeyFrameDisplay::save(ofstream &of) {
+    void KeyFrameDisplay::save(ofstream &of)
+    {
         Sophus::Sim3f Swc;
-        if (originFrame) {
+        if (originFrame)
+        {
             Swc = originFrame->getPoseOpti().inverse().cast<float>();
-        } else {
+        }
+        else
+        {
             Swc = camToWorld.cast<float>();
         }
 
-        for (int i = 0; i < numSparsePoints; ++i) {
-            if (originalInputSparse[i].idpeth <= 0) continue;
+        for (int i = 0; i < numSparsePoints; ++i)
+        {
+            if (originalInputSparse[i].idpeth <= 0)
+                continue;
             float depth = 1.0f / (originalInputSparse[i].idpeth);
 
             float x = (originalInputSparse[i].u * fxi + cxi) * depth;
@@ -313,7 +362,8 @@ namespace ldso {
 
     // =================================================================================
 
-    PangolinDSOViewer::PangolinDSOViewer(int w, int h, bool startRunThread) {
+    PangolinDSOViewer::PangolinDSOViewer(int w, int h, bool startRunThread)
+    {
 
         this->w = w;
         this->h = h;
@@ -331,14 +381,17 @@ namespace ldso {
         currentCam = shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
     }
 
-    PangolinDSOViewer::~PangolinDSOViewer() {
+    PangolinDSOViewer::~PangolinDSOViewer()
+    {
         close();
-        if (runThread.joinable()) {
+        if (runThread.joinable())
+        {
             runThread.join();
         }
     }
 
-    void PangolinDSOViewer::run() {
+    void PangolinDSOViewer::run()
+    {
 
         pangolin::CreateWindowAndBind("Main", 2 * w, 2 * h);
         LOG(INFO) << "Create Pangolin DSO viewer" << endl;
@@ -349,15 +402,14 @@ namespace ldso {
         // 3D visualization
         pangolin::OpenGlRenderState Visualization3D_camera(
             pangolin::ProjectionMatrix(w, h, 400, 400, w / 2, h / 2, 0.1, 1000),
-            pangolin::ModelViewLookAt(-0, -5, -10, 0, 0, 0, pangolin::AxisNegY)
-        );
+            pangolin::ModelViewLookAt(-0, -5, -10, 0, 0, 0, pangolin::AxisNegY));
 
         pangolin::View &Visualization3D_display = pangolin::CreateDisplay()
-            .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0, -w / (float) h)
-            .SetHandler(new pangolin::Handler3D(Visualization3D_camera));
+                                                      .SetBounds(0.0, 1.0, pangolin::Attach::Pix(UI_WIDTH), 1.0, -w / (float)h)
+                                                      .SetHandler(new pangolin::Handler3D(Visualization3D_camera));
 
         pangolin::View &d_video = pangolin::Display("imgVideo")
-            .SetAspect(w / (float) h);
+                                      .SetAspect(w / (float)h);
 
         pangolin::GlTexture texVideo(w, h, GL_RGB, false, 0, GL_RGB, GL_UNSIGNED_BYTE);
 
@@ -402,15 +454,16 @@ namespace ldso {
         pangolin::Var<double> settings_trackFps("ui.Track fps", 0, 0, 0, false);
         pangolin::Var<double> settings_mapFps("ui.KF fps", 0, 0, 0, false);
 
-
         // Default hooks for exiting (Esc) and fullscreen (tab).
         LOG(INFO) << "Looping viewer thread" << endl;
-        while (!pangolin::ShouldQuit() && running) {
+        while (!pangolin::ShouldQuit() && running)
+        {
             // Clear entire screen
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-            if (setting_render_display3D) {
+            if (setting_render_display3D)
+            {
 
                 // Activate efficiently by object
                 // render the point cloud
@@ -426,8 +479,10 @@ namespace ldso {
                     needRefreshAll = freshAll;
                 }
 
-                if (needRefreshAll) {
-                    for (auto &fh: keyframes) {
+                if (needRefreshAll)
+                {
+                    for (auto &fh : keyframes)
+                    {
                         fh->refreshPC(true, this->settings_scaledVarTH,
                                       this->settings_absVarTH,
                                       this->settings_pointCloudMode, this->settings_minRelBS,
@@ -436,20 +491,25 @@ namespace ldso {
                     }
                     unique_lock<mutex> lck(freshMutex);
                     freshAll = false;
-                } else {
-                    for (auto fh : keyframes) {
-                        refreshed = +(int) (fh->refreshPC(refreshed < 10, this->settings_scaledVarTH,
-                                                          this->settings_absVarTH,
-                                                          this->settings_pointCloudMode, this->settings_minRelBS,
-                                                          this->settings_sparsity));
+                }
+                else
+                {
+                    for (auto fh : keyframes)
+                    {
+                        refreshed = +(int)(fh->refreshPC(refreshed < 10, this->settings_scaledVarTH,
+                                                         this->settings_absVarTH,
+                                                         this->settings_pointCloudMode, this->settings_minRelBS,
+                                                         this->settings_sparsity));
                         fh->drawPC(1);
                     }
                 }
 
                 // active key frames
-                if (this->settings_showKFCameras) {
+                if (this->settings_showKFCameras)
+                {
                     float blue[3] = {0, 0, 1};
-                    for (auto &id: activeKFIDs) {
+                    for (auto &id : activeKFIDs)
+                    {
                         auto kfd = keyframesByKFID[id];
                         kfd->drawCam(1.5, blue, 0.1);
                     }
@@ -460,14 +520,16 @@ namespace ldso {
                     currentCam->drawCam(2, 0, 0.2);
 
                 // trajectory
-                if (settings_showTrajectory) {
+                if (settings_showTrajectory)
+                {
 
                     // red is before optimization
                     float colorRed[3] = {1, 0, 0};
                     glColor3f(colorRed[0], colorRed[1], colorRed[2]);
                     glLineWidth(3);
                     glBegin(GL_LINE_STRIP);
-                    for (unsigned int i = 0; i < allFramePoses.size(); i++) {
+                    for (unsigned int i = 0; i < allFramePoses.size(); i++)
+                    {
                         shared_ptr<Frame> fr = allFramePoses[i];
                         Vec3 t = fr->getPose().inverse().translation();
                         glVertex3d(t[0], t[1], t[2]);
@@ -477,9 +539,11 @@ namespace ldso {
                     // yellow is after optimization
                     glBegin(GL_LINE_STRIP);
                     glColor3f(yellow[0], yellow[1], yellow[2]);
-                    for (size_t i = 0; i < keyframes.size(); i++) {
+                    for (size_t i = 0; i < keyframes.size(); i++)
+                    {
                         shared_ptr<Frame> frame = keyframes[i]->originFrame;
-                        if (frame) {
+                        if (frame)
+                        {
                             Vec3 t = frame->getPoseOpti().inverse().translation();
                             glVertex3d(t[0], t[1], t[2]);
                         }
@@ -490,12 +554,15 @@ namespace ldso {
                     glLineWidth(3.0);
                     glColor3f(yellow[0], yellow[1], yellow[2]);
                     glBegin(GL_LINES);
-                    for (size_t i = 0; i < keyframes.size(); i++) {
+                    for (size_t i = 0; i < keyframes.size(); i++)
+                    {
                         shared_ptr<Frame> frame = keyframes[i]->originFrame;
-                        if (frame) {
+                        if (frame)
+                        {
                             Vec3 t = frame->getPoseOpti().inverse().translation();
                             unique_lock<mutex> lck(frame->mutexPoseRel);
-                            for (auto rel: frame->poseRel) {
+                            for (auto rel : frame->poseRel)
+                            {
                                 auto t2 = rel.first->getPoseOpti().inverse().translation();
                                 glVertex3d(t[0], t[1], t[2]);
                                 glVertex3d(t2[0], t2[1], t2[2]);
@@ -510,7 +577,8 @@ namespace ldso {
             {
                 model3DMutex.lock();
                 float sd = 0;
-                for (float d : lastNTrackingMs) sd += d;
+                for (float d : lastNTrackingMs)
+                    sd += d;
                 settings_trackFps = lastNTrackingMs.size() * 1000.0f / sd;
                 model3DMutex.unlock();
             }
@@ -518,10 +586,12 @@ namespace ldso {
             // video image
             {
                 unique_lock<mutex> lck(openImagesMutex);
-                if (videoImgChanged) texVideo.Upload(internalVideoImg->data, GL_BGR, GL_UNSIGNED_BYTE);
+                if (videoImgChanged)
+                    texVideo.Upload(internalVideoImg->data, GL_BGR, GL_UNSIGNED_BYTE);
             }
 
-            if (setting_render_displayVideo) {
+            if (setting_render_displayVideo)
+            {
                 d_video.Activate();
                 glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
                 texVideo.RenderToViewportFlipY();
@@ -557,7 +627,8 @@ namespace ldso {
             setting_kfGlobalWeight = settings_kfFrequency.Get();
             setting_minGradHistAdd = settings_gradHistAdd.Get();
 
-            if (settings_resetButton.Get()) {
+            if (settings_resetButton.Get())
+            {
                 printf("RESET!\n");
                 settings_resetButton.Reset();
                 setting_fullResetRequested = true;
@@ -576,34 +647,44 @@ namespace ldso {
         printf("So Long, and Thanks for All the Fish!\n");
     }
 
-    void PangolinDSOViewer::close() {
+    void PangolinDSOViewer::close()
+    {
         running = false;
     }
 
-    void PangolinDSOViewer::join() {
+    void PangolinDSOViewer::join()
+    {
         runThread.join();
         printf("JOINED Pangolin thread!\n");
     }
 
-    void PangolinDSOViewer::reset() {
+    void PangolinDSOViewer::reset()
+    {
         needReset = true;
     }
 
     void PangolinDSOViewer::publishKeyframes(
         std::vector<shared_ptr<Frame>> &frames, bool final,
-        shared_ptr<CalibHessian> HCalib) {
+        shared_ptr<CalibHessian> HCalib)
+    {
 
-        if (!setting_render_display3D) return;
-        if (disableAllDisplay) return;
+        if (!setting_render_display3D)
+            return;
+        if (disableAllDisplay)
+            return;
 
         unique_lock<mutex> lk(model3DMutex);
         activeKFIDs.clear();
-        for (auto fr :frames) {
-            if (keyframesByKFID.find(fr->kfId) == keyframesByKFID.end()) {
+        for (auto fr : frames)
+        {
+            if (keyframesByKFID.find(fr->kfId) == keyframesByKFID.end())
+            {
                 shared_ptr<KeyFrameDisplay> kfd = shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
                 keyframesByKFID[fr->kfId] = kfd;
                 keyframes.push_back(kfd);
-            } else {
+            }
+            else
+            {
             }
             if (fr->frameHessian)
                 keyframesByKFID[fr->kfId]->setFromKF(fr->frameHessian, HCalib);
@@ -611,10 +692,10 @@ namespace ldso {
                 keyframesByKFID[fr->kfId]->setFromF(fr, HCalib);
             activeKFIDs.push_back(fr->kfId);
         }
-
     }
 
-    void PangolinDSOViewer::reset_internal() {
+    void PangolinDSOViewer::reset_internal()
+    {
 
         LOG(INFO) << "resetting viewer" << endl;
         unique_lock<mutex> lock(model3DMutex);
@@ -626,7 +707,8 @@ namespace ldso {
         needReset = false;
     }
 
-    void PangolinDSOViewer::publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib) {
+    void PangolinDSOViewer::publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib)
+    {
 
         if (!setting_render_display3D)
             return;
@@ -646,38 +728,44 @@ namespace ldso {
             currentCam->setFromF(frame, HCalib);
         allFramePoses.push_back(frame);
 
-        if (frame->frameHessian) {
+        if (frame->frameHessian)
+        {
             unique_lock<mutex> lk(openImagesMutex);
             for (int i = 0; i < w * h; i++)
                 internalVideoImg->data[i][0] =
-                internalVideoImg->data[i][1] =
-                internalVideoImg->data[i][2] =
-                    frame->frameHessian->dI[i][0] * 0.8 > 255.0f ? 255.0 : frame->frameHessian->dI[i][0] * 0.8;
+                    internalVideoImg->data[i][1] =
+                        internalVideoImg->data[i][2] =
+                            frame->frameHessian->dI[i][0] * 0.8 > 255.0f ? 255.0 : frame->frameHessian->dI[i][0] * 0.8;
             videoImgChanged = true;
         }
     }
 
-    void PangolinDSOViewer::saveAsPLYFile(const string &file_name) {
+    void PangolinDSOViewer::saveAsPLYFile(const string &file_name)
+    {
         LOG(INFO) << "save to " << file_name;
         ofstream fout(file_name);
-        if (!fout) return;
+        if (!fout)
+            return;
         unique_lock<mutex> lk3d(model3DMutex);
 
         // count number of landmarks
         int cnt_points = 0;
 
-        for (auto kf: keyframes) {
+        for (auto kf : keyframes)
+        {
             cnt_points += kf->numPoints();
         }
         // header
-        fout << "ply" << endl << "format ascii 1.0" << endl
+        fout << "ply" << endl
+             << "format ascii 1.0" << endl
              << "element vertex " << cnt_points << endl
              << "property float x" << endl
              << "property float y" << endl
              << "property float z" << endl
              << "end_header" << endl;
 
-        for (auto kf: keyframes) {
+        for (auto kf : keyframes)
+        {
             kf->save(fout);
         }
         fout.close();

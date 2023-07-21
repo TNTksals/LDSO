@@ -9,9 +9,11 @@ using namespace std;
 #include "NumTypes.h"
 #include "internal/RawResidualJacobian.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
         /**
          * photometric residuals defined in DSO
@@ -24,27 +26,37 @@ namespace ldso {
 
         class EnergyFunctional;
 
-        enum ResLocation {
-            ACTIVE = 0, LINEARIZED, MARGINALIZED, NONE
+        enum ResLocation
+        {
+            ACTIVE = 0,
+            LINEARIZED,
+            MARGINALIZED,
+            NONE
         };
 
-        enum ResState {
-            IN = 0, OOB, OUTLIER
+        enum ResState
+        {
+            IN = 0,
+            OOB,
+            OUTLIER
         }; // Residual state: inside, outside, outlier
 
-        struct FullJacRowT {
+        struct FullJacRowT
+        {
             Eigen::Vector2f projectedTo[MAX_RES_PER_POINT];
         };
 
         // Photometric reprojection Error
-        class PointFrameResidual {
+        class PointFrameResidual
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             PointFrameResidual() : J(new RawResidualJacobian) {}
 
             PointFrameResidual(shared_ptr<PointHessian> point_, shared_ptr<FrameHessian> host_,
-                               shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian) {
+                               shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian)
+            {
                 point = point_;
                 host = host_;
                 target = target_;
@@ -60,24 +72,31 @@ namespace ldso {
              */
             virtual double linearize(shared_ptr<CalibHessian> &HCalib);
 
-            virtual void resetOOB() {
+            virtual void resetOOB()
+            {
                 state_NewEnergy = state_energy = 0;
                 state_NewState = ResState::OUTLIER;
                 setState(ResState::IN);
             };
 
             // 将state_NewState的状态更新至当前状态
-            void applyRes(bool copyJacobians) {
+            void applyRes(bool copyJacobians)
+            {
 
-                if (copyJacobians) {
-                    if (state_state == ResState::OOB) {
+                if (copyJacobians)
+                {
+                    if (state_state == ResState::OOB)
+                    {
                         return;
                     }
 
-                    if (state_NewState == ResState::IN) {
+                    if (state_NewState == ResState::IN)
+                    {
                         isActiveAndIsGoodNEW = true;
                         takeData();
-                    } else {
+                    }
+                    else
+                    {
                         isActiveAndIsGoodNEW = false;
                     }
                 }
@@ -115,18 +134,18 @@ namespace ldso {
 
             VecNRf res_toZeroF;
             Vec8f JpJdF = Vec8f::Zero();
-            bool isLinearized = false;  // if linearization is fixed.
+            bool isLinearized = false; // if linearization is fixed.
 
             // if residual is not OOB & not OUTLIER & should be used during accumulations
             bool isActiveAndIsGoodNEW = false;
 
-            void takeData() {
+            void takeData()
+            {
                 Vec2f JI_JI_Jd = J->JIdx2 * J->Jpdd;
                 for (int i = 0; i < 6; i++)
                     JpJdF[i] = J->Jpdxi[0][i] * JI_JI_Jd[0] + J->Jpdxi[1][i] * JI_JI_Jd[1];
                 JpJdF.segment<2>(6) = J->JabJIdx * J->Jpdd;
             }
-
         };
     }
 }

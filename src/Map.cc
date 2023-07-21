@@ -17,21 +17,26 @@
 using namespace std;
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
-    void Map::AddKeyFrame(shared_ptr<Frame> kf) {
+    void Map::AddKeyFrame(shared_ptr<Frame> kf)
+    {
         unique_lock<mutex> mapLock(mapMutex);
-        if (frames.find(kf) == frames.end()) {
+        if (frames.find(kf) == frames.end())
+        {
             frames.insert(kf);
         }
     }
 
-    void Map::lastOptimizeAllKFs() {
+    void Map::lastOptimizeAllKFs()
+    {
         LOG(INFO) << "Final pose graph optimization after odometry is finished.";
 
         {
             unique_lock<mutex> lock(mutexPoseGraph);
-            if (poseGraphRunning) {
+            if (poseGraphRunning)
+            {
                 LOG(FATAL) << "Should not be called while pose graph optimization is running";
             }
         }
@@ -42,7 +47,8 @@ namespace ldso {
         runPoseGraphOptimization();
     }
 
-    bool Map::OptimizeALLKFs() {
+    bool Map::OptimizeALLKFs()
+    {
         {
             unique_lock<mutex> lock(mutexPoseGraph);
             if (poseGraphRunning)
@@ -57,27 +63,32 @@ namespace ldso {
 
         //  start the pose graph thread
         thread th = thread(&Map::runPoseGraphOptimization, this);
-        th.detach();    // it will set posegraphrunning to false when returns
+        th.detach(); // it will set posegraphrunning to false when returns
         return true;
     }
 
-    void Map::UpdateAllWorldPoints() {
+    void Map::UpdateAllWorldPoints()
+    {
         unique_lock<mutex> lock(mutexPoseGraph);
-        for (shared_ptr<Frame> frame: frames) {
-            for (auto &feat: frame->features) {
-                if (feat->point) {
+        for (shared_ptr<Frame> frame : frames)
+        {
+            for (auto &feat : frame->features)
+            {
+                if (feat->point)
+                {
                     feat->point->ComputeWorldPos();
                 }
             }
         }
     }
 
-    void Map::runPoseGraphOptimization() {
+    void Map::runPoseGraphOptimization()
+    {
 
         LOG(INFO) << "start pose graph thread!" << endl;
         // Setup optimizer
         g2o::SparseOptimizer optimizer;
-        typedef BlockSolver<BlockSolverTraits<7, 3> > BlockSolverType;
+        typedef BlockSolver<BlockSolverTraits<7, 3>> BlockSolverType;
         BlockSolverType::LinearSolverType *linearSolver;
         linearSolver = new g2o::LinearSolverEigen<BlockSolverType::PoseMatrixType>();
         BlockSolverType *solver_ptr = new BlockSolverType(linearSolver);
@@ -91,11 +102,13 @@ namespace ldso {
         int maxKFid = 0;
         int cntEdgePR = 0;
 
-        for (const shared_ptr<Frame> &fr: framesOpti) {
+        for (const shared_ptr<Frame> &fr : framesOpti)
+        {
 
             // each kf has Sim3 pose
             int idKF = fr->kfId;
-            if (idKF > maxKFid) {
+            if (idKF > maxKFid)
+            {
                 maxKFid = idKF;
             }
 
@@ -108,18 +121,20 @@ namespace ldso {
             optimizer.addVertex(vSim3);
 
             // fix the last one since we don't want to affect the frames in window
-            if (fr == currentKF) {
+            if (fr == currentKF)
+            {
                 vSim3->setFixed(true);
             }
-
         }
 
         // edges
-        for (const shared_ptr<Frame> &fr: framesOpti) {
+        for (const shared_ptr<Frame> &fr : framesOpti)
+        {
             unique_lock<mutex> lock(fr->mutexPoseRel);
-            for (auto &rel: fr->poseRel) {
-                VertexSim3 *vPR1 = (VertexSim3 *) optimizer.vertex(fr->kfId);
-                VertexSim3 *vPR2 = (VertexSim3 *) optimizer.vertex(rel.first->kfId);
+            for (auto &rel : fr->poseRel)
+            {
+                VertexSim3 *vPR1 = (VertexSim3 *)optimizer.vertex(fr->kfId);
+                VertexSim3 *vPR2 = (VertexSim3 *)optimizer.vertex(rel.first->kfId);
                 EdgeSim3 *edgePR = new EdgeSim3();
                 if (vPR1 == nullptr || vPR2 == nullptr)
                     continue;
@@ -141,15 +156,18 @@ namespace ldso {
         optimizer.optimize(25);
 
         // recover the pose and points estimation
-        for (shared_ptr<Frame> frame: framesOpti) {
-            VertexSim3 *vSim3 = (VertexSim3 *) optimizer.vertex(frame->kfId);
+        for (shared_ptr<Frame> frame : framesOpti)
+        {
+            VertexSim3 *vSim3 = (VertexSim3 *)optimizer.vertex(frame->kfId);
             Sim3 Scw = vSim3->estimate();
             CHECK(Scw.scale() > 0);
 
             frame->setPoseOpti(Scw);
             // reset the map point world position because we've changed the keyframe pose
-            for (auto &feat: frame->features) {
-                if (feat->point) {
+            for (auto &feat : frame->features)
+            {
+                if (feat->point)
+                {
                     feat->point->ComputeWorldPos();
                 }
             }
@@ -157,11 +175,13 @@ namespace ldso {
 
         poseGraphRunning = false;
 
-        if (currentKF) {
+        if (currentKF)
+        {
             latestOptimizedKfId = currentKF->kfId;
         }
 
-        if (fullsystem) fullsystem->RefreshGUI();
+        if (fullsystem)
+            fullsystem->RefreshGUI();
     }
 
 }

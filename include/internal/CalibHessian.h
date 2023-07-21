@@ -6,18 +6,22 @@
 #include "Camera.h"
 #include "Settings.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
         /**
          * Camera intrinsics with hessian
          */
-        class CalibHessian {
+        class CalibHessian
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            CalibHessian(shared_ptr<Camera> cam) : camera(cam) {
+            CalibHessian(shared_ptr<Camera> cam) : camera(cam)
+            {
 
                 VecC initial_value = VecC::Zero();
                 initial_value[0] = cam->fx;
@@ -29,46 +33,56 @@ namespace ldso {
                 value_zero = value;
                 value_minus_value_zero.setZero();
 
-                for (int i = 0; i < 256; i++) {
-                    Binv[i] = B[i] = i;    // set gamma function to identity
+                for (int i = 0; i < 256; i++)
+                {
+                    Binv[i] = B[i] = i; // set gamma function to identity
                 }
             }
 
             // normal mode: use the optimized parameters everywhere!
             // accessors
-            inline float &fxl() {
+            inline float &fxl()
+            {
                 return value_scaledf[0];
             }
 
-            inline float &fyl() {
+            inline float &fyl()
+            {
                 return value_scaledf[1];
             }
 
-            inline float &cxl() {
+            inline float &cxl()
+            {
                 return value_scaledf[2];
             }
 
-            inline float &cyl() {
+            inline float &cyl()
+            {
                 return value_scaledf[3];
             }
 
-            inline float &fxli() {
+            inline float &fxli()
+            {
                 return value_scaledi[0];
             }
 
-            inline float &fyli() {
+            inline float &fyli()
+            {
                 return value_scaledi[1];
             }
 
-            inline float &cxli() {
+            inline float &cxli()
+            {
                 return value_scaledi[2];
             }
 
-            inline float &cyli() {
+            inline float &cyli()
+            {
                 return value_scaledi[3];
             }
 
-            inline void setValue(const VecC &value) {
+            inline void setValue(const VecC &value)
+            {
                 // [0-3: Kl, 4-7: Kr, 8-12: l2r]
                 this->value = value;
                 value_scaled[0] = SCALE_F * value[0];
@@ -84,7 +98,8 @@ namespace ldso {
                 this->value_minus_value_zero = this->value - this->value_zero;
             };
 
-            inline void setValueScaled(const VecC &value_scaled) {
+            inline void setValueScaled(const VecC &value_scaled)
+            {
                 this->value_scaled = value_scaled;
                 this->value_scaledf = this->value_scaled.cast<float>();
                 value[0] = SCALE_F_INVERSE * value_scaled[0];
@@ -99,23 +114,29 @@ namespace ldso {
                 this->value_scaledi[3] = -this->value_scaledf[3] / this->value_scaledf[1];
             };
 
-            EIGEN_STRONG_INLINE float getBGradOnly(float color) {
+            EIGEN_STRONG_INLINE float getBGradOnly(float color)
+            {
                 int c = color + 0.5f;
-                if (c < 5) {
+                if (c < 5)
+                {
                     c = 5;
                 }
-                if (c > 250) {
+                if (c > 250)
+                {
                     c = 250;
                 }
                 return B[c + 1] - B[c];
             }
 
-            EIGEN_STRONG_INLINE float getBInvGradOnly(float color) {
+            EIGEN_STRONG_INLINE float getBInvGradOnly(float color)
+            {
                 int c = color + 0.5f;
-                if (c < 5) {
+                if (c < 5)
+                {
                     c = 5;
                 }
-                if (c > 250) {
+                if (c > 250)
+                {
                     c = 250;
                 }
                 return Binv[c + 1] - Binv[c];
@@ -125,9 +146,9 @@ namespace ldso {
 
             // values during estimation
             VecC value_zero = VecC::Zero();
-            VecC value_scaled;      // [fx, fy, cx, cy] in double
-            VecCf value_scaledf;    // [fx, fy, cx, cy] in float
-            VecCf value_scaledi;    // inverse of value_scaledf
+            VecC value_scaled;   // [fx, fy, cx, cy] in double
+            VecCf value_scaledf; // [fx, fy, cx, cy] in float
+            VecCf value_scaledi; // inverse of value_scaledf
             VecC value;
             VecC step;
             VecC step_backup;

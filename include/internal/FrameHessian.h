@@ -11,9 +11,11 @@
 
 using namespace std;
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
         class PointHessian;
 
@@ -24,58 +26,71 @@ namespace ldso {
         /**
          * Frame hessian is the internal structure used in dso
          */
-        class FrameHessian {
+        class FrameHessian
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            FrameHessian(shared_ptr<Frame> frame) {
+            FrameHessian(shared_ptr<Frame> frame)
+            {
                 this->frame = frame;
             }
 
-            ~FrameHessian() {
-                for (int i = 0; i < pyrLevelsUsed; i++) {
+            ~FrameHessian()
+            {
+                for (int i = 0; i < pyrLevelsUsed; i++)
+                {
                     delete[] dIp[i];
-                    delete[]  absSquaredGrad[i];
+                    delete[] absSquaredGrad[i];
                 }
             }
 
             // accessors
-            EIGEN_STRONG_INLINE const SE3 &get_worldToCam_evalPT() const {
+            EIGEN_STRONG_INLINE const SE3 &get_worldToCam_evalPT() const
+            {
                 return worldToCam_evalPT;
             }
 
-            EIGEN_STRONG_INLINE const Vec10 &get_state_zero() const {
+            EIGEN_STRONG_INLINE const Vec10 &get_state_zero() const
+            {
                 return state_zero;
             }
 
-            EIGEN_STRONG_INLINE const Vec10 &get_state() const {
+            EIGEN_STRONG_INLINE const Vec10 &get_state() const
+            {
                 return state;
             }
 
-            EIGEN_STRONG_INLINE const Vec10 &get_state_scaled() const {
+            EIGEN_STRONG_INLINE const Vec10 &get_state_scaled() const
+            {
                 return state_scaled;
             }
 
             // state - state0
-            EIGEN_STRONG_INLINE const Vec10 get_state_minus_stateZero() const {
+            EIGEN_STRONG_INLINE const Vec10 get_state_minus_stateZero() const
+            {
                 return get_state() - get_state_zero();
             }
 
-            inline Vec6 w2c_leftEps() const {
+            inline Vec6 w2c_leftEps() const
+            {
                 return get_state_scaled().head<6>();
             }
 
-            inline AffLight aff_g2l() {
+            inline AffLight aff_g2l()
+            {
                 return AffLight(get_state_scaled()[6], get_state_scaled()[7]);
             }
 
-            inline AffLight aff_g2l_0() const {
+            inline AffLight aff_g2l_0() const
+            {
                 return AffLight(get_state_zero()[6] * SCALE_A, get_state_zero()[7] * SCALE_B);
             }
 
             void setStateZero(const Vec10 &state_zero);
 
-            inline void setState(const Vec10 &state) {
+            inline void setState(const Vec10 &state)
+            {
 
                 this->state = state;
                 state_scaled.segment<3>(0) = SCALE_XI_TRANS * state.segment<3>(0);
@@ -89,7 +104,8 @@ namespace ldso {
                 PRE_camToWorld = PRE_worldToCam.inverse();
             };
 
-            inline void setStateScaled(const Vec10 &state_scaled) {
+            inline void setStateScaled(const Vec10 &state_scaled)
+            {
 
                 this->state_scaled = state_scaled;
                 state.segment<3>(0) = SCALE_XI_TRANS_INVERSE * state_scaled.segment<3>(0);
@@ -103,7 +119,8 @@ namespace ldso {
                 PRE_camToWorld = PRE_worldToCam.inverse();
             };
 
-            inline void setEvalPT(const SE3 &worldToCam_evalPT, const Vec10 &state) {
+            inline void setEvalPT(const SE3 &worldToCam_evalPT, const Vec10 &state)
+            {
 
                 this->worldToCam_evalPT = worldToCam_evalPT;
                 setState(state);
@@ -111,7 +128,8 @@ namespace ldso {
             };
 
             // set the pose Tcw
-            inline void setEvalPT_scaled(const SE3 &worldToCam_evalPT, const AffLight &aff_g2l) {
+            inline void setEvalPT_scaled(const SE3 &worldToCam_evalPT, const AffLight &aff_g2l)
+            {
                 Vec10 initial_state = Vec10::Zero();
                 initial_state[6] = aff_g2l.a;
                 initial_state[7] = aff_g2l.b;
@@ -126,25 +144,36 @@ namespace ldso {
              */
             void makeImages(float *image, const shared_ptr<CalibHessian> &HCalib);
 
-            inline Vec10 getPrior() {
+            inline Vec10 getPrior()
+            {
                 Vec10 p = Vec10::Zero();
-                if (frame->id == 0) {
+                if (frame->id == 0)
+                {
                     p.head<3>() = Vec3::Constant(setting_initialTransPrior);
                     p.segment<3>(3) = Vec3::Constant(setting_initialRotPrior);
-                    if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR) {
+                    if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR)
+                    {
                         p.head<6>().setZero();
                     }
                     p[6] = setting_initialAffAPrior;
                     p[7] = setting_initialAffBPrior;
-                } else {
-                    if (setting_affineOptModeA < 0) {
+                }
+                else
+                {
+                    if (setting_affineOptModeA < 0)
+                    {
                         p[6] = setting_initialAffAPrior;
-                    } else {
+                    }
+                    else
+                    {
                         p[6] = setting_affineOptModeA;
                     }
-                    if (setting_affineOptModeB < 0) {
+                    if (setting_affineOptModeB < 0)
+                    {
                         p[7] = setting_initialAffBPrior;
-                    } else {
+                    }
+                    else
+                    {
                         p[7] = setting_affineOptModeB;
                     }
                 }
@@ -153,13 +182,14 @@ namespace ldso {
                 return p;
             }
 
-            inline Vec10 getPriorZero() {
+            inline Vec10 getPriorZero()
+            {
                 return Vec10::Zero();
             }
 
             // Data
-            int frameID = 0;              // key-frame ID, will be set when adding new keyframes
-            shared_ptr<Frame> frame = nullptr;    // link to original frame
+            int frameID = 0;                   // key-frame ID, will be set when adding new keyframes
+            shared_ptr<Frame> frame = nullptr; // link to original frame
 
             // internal structures used in DSO
             // image pyramid and gradient image
@@ -169,14 +199,14 @@ namespace ldso {
             Vec3f *dIp[PYR_LEVELS];
 
             // absolute squared gradient of each pyramid
-            float *absSquaredGrad[PYR_LEVELS];  // only used for pixel select (histograms etc.). no NAN.
+            float *absSquaredGrad[PYR_LEVELS]; // only used for pixel select (histograms etc.). no NAN.
 
             // dI = dIp[0], the first pyramid
-            Vec3f *dI = nullptr;     // trace, fine tracking. Used for direction select (not for gradient histograms etc.)
+            Vec3f *dI = nullptr; // trace, fine tracking. Used for direction select (not for gradient histograms etc.)
 
             // Photometric Calibration Stuff
-            float frameEnergyTH = 8 * 8 * patternNum;    // set dynamically depending on tracking residual
-            float ab_exposure = 0;  // the exposure time // 曝光时间
+            float frameEnergyTH = 8 * 8 * patternNum; // set dynamically depending on tracking residual
+            float ab_exposure = 0;                    // the exposure time // 曝光时间
 
             bool flaggedForMarginalization = false; // flag for margin
             Mat66 nullspaces_pose = Mat66::Zero();
@@ -184,10 +214,10 @@ namespace ldso {
             Vec6 nullspaces_scale = Vec6::Zero();
 
             // variable info.
-            SE3 worldToCam_evalPT;  // Tcw (in ORB-SLAM's framework)
+            SE3 worldToCam_evalPT; // Tcw (in ORB-SLAM's framework)
 
             // state variable，[0-5] is se3, 6-7 is light param a,b
-            Vec10 state;        // [0-5: worldToCam-leftEps. 6-7: a,b]
+            Vec10 state; // [0-5: worldToCam-leftEps. 6-7: a,b]
 
             // variables used in optimization
             Vec10 step = Vec10::Zero();
@@ -205,12 +235,11 @@ namespace ldso {
             // ======================================================================================== //
             // Energy stuffs
             // Frame status: 6 dof pose + 2 dof light param
-            void takeData();        // take data from frame hessian
-            Vec8 prior = Vec8::Zero();             // prior hessian (diagonal)
-            Vec8 delta_prior = Vec8::Zero();       // = state-state_prior (E_prior = (delta_prior)' * diag(prior) * (delta_prior)
-            Vec8 delta = Vec8::Zero();             // state - state_zero.
-            int idx = 0;                         // the id in the sliding window, used for constructing matricies
-
+            void takeData();                 // take data from frame hessian
+            Vec8 prior = Vec8::Zero();       // prior hessian (diagonal)
+            Vec8 delta_prior = Vec8::Zero(); // = state-state_prior (E_prior = (delta_prior)' * diag(prior) * (delta_prior)
+            Vec8 delta = Vec8::Zero();       // state - state_zero.
+            int idx = 0;                     // the id in the sliding window, used for constructing matricies
         };
     }
 }

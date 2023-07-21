@@ -9,8 +9,10 @@
 #include "internal/OptimizationBackend/AccumulatedTopHessian.h"
 #include "internal/OptimizationBackend/AccumulatedSCHessian.h"
 
-namespace ldso {
-    namespace internal {
+namespace ldso
+{
+    namespace internal
+    {
 
         extern bool EFAdjointsValid;
         extern bool EFIndicesValid;
@@ -28,7 +30,8 @@ namespace ldso {
          * all the stuffs and keep them synhonized with FullSystem. Looks not good. Maybe for some historical reasons?
          *
          */
-        class EnergyFunctional {
+        class EnergyFunctional
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -151,8 +154,8 @@ namespace ldso {
             std::vector<shared_ptr<FrameHessian>> frames;
             int nPoints = 0, nFrames = 0, nResiduals = 0;
 
-            MatXX HM = MatXX::Zero(CPARS, CPARS);   // frame-frame H matrix
-            VecX bM = VecX::Zero(CPARS);    // frame-frame b vector
+            MatXX HM = MatXX::Zero(CPARS, CPARS); // frame-frame H matrix
+            VecX bM = VecX::Zero(CPARS);          // frame-frame b vector
 
             int resInA = 0, resInL = 0, resInM = 0;
 
@@ -166,21 +169,22 @@ namespace ldso {
             std::vector<VecX> lastNullspaces_affA;
             std::vector<VecX> lastNullspaces_affB;
 
-            IndexThreadReduce<Vec10> *red = nullptr;  // passed by full system
+            IndexThreadReduce<Vec10> *red = nullptr; // passed by full system
 
             /**
              * connectivity map, the higher 32 bit of the key is host frame's id, and the lower is target frame's id
              */
             std::map<uint64_t,
-                    Eigen::Vector2i,
-                    std::less<uint64_t>,
-                    Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>
-            > connectivityMap;
+                     Eigen::Vector2i,
+                     std::less<uint64_t>,
+                     Eigen::aligned_allocator<std::pair<const uint64_t, Eigen::Vector2i>>>
+                connectivityMap;
 
         private:
             /// I really don't know what are they doing in the private functions
 
-            VecX getStitchedDeltaF() const {
+            VecX getStitchedDeltaF() const
+            {
                 VecX d = VecX(CPARS + nFrames * 8);
                 d.head<CPARS>() = cDeltaF.cast<double>();
                 for (int h = 0; h < nFrames; h++)
@@ -212,14 +216,14 @@ namespace ldso {
             // don't use shared_ptr to handle dynamic arrays
             Mat18f *adHTdeltaF = nullptr;
 
-            Mat88 *adHost = nullptr;    // arrays of adjoints, adHost = -Adj(HostToTarget)^T
+            Mat88 *adHost = nullptr; // arrays of adjoints, adHost = -Adj(HostToTarget)^T
             Mat88 *adTarget = nullptr;
 
             Mat88f *adHostF = nullptr;
             Mat88f *adTargetF = nullptr;
 
             VecC cPrior;
-            VecCf cDeltaF;  // camera intrinsic change
+            VecCf cDeltaF; // camera intrinsic change
             VecCf cPriorF;
 
             shared_ptr<AccumulatedTopHessianSSE> accSSE_top_L;

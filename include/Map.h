@@ -14,7 +14,8 @@
 using namespace std;
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
     class FullSystem;
 
@@ -25,7 +26,8 @@ namespace ldso {
      * The loop closing thread will call the optimize function if there is a consistent loop closure.
      */
 
-    class Map {
+    class Map
+    {
     public:
         Map(FullSystem *fs) : fullsystem(fs) {}
 
@@ -53,12 +55,14 @@ namespace ldso {
          * get number of frames stored in global map
          * @return
          */
-        inline int NumFrames() const {
+        inline int NumFrames() const
+        {
             return frames.size();
         }
 
         // is pose graph running?
-        bool Idle() {
+        bool Idle()
+        {
             unique_lock<mutex> lock(mutexPoseGraph);
             return !poseGraphRunning;
         }
@@ -71,15 +75,15 @@ namespace ldso {
         // the pose graph optimization thread
         void runPoseGraphOptimization();
 
-        mutex mapMutex; // map mutex to protect its data
-        set<shared_ptr<Frame>, CmpFrameID> frames;      // all KFs by ID
-        set<shared_ptr<Frame>, CmpFrameID> framesOpti;  // KFs to be optimized
+        mutex mapMutex;                                // map mutex to protect its data
+        set<shared_ptr<Frame>, CmpFrameID> frames;     // all KFs by ID
+        set<shared_ptr<Frame>, CmpFrameID> framesOpti; // KFs to be optimized
         shared_ptr<Frame> currentKF = nullptr;
 
         // keyframe id of newest optimized keyframe frame
         unsigned long latestOptimizedKfId = 0;
 
-        bool poseGraphRunning = false;  // is pose graph running?
+        bool poseGraphRunning = false; // is pose graph running?
         mutex mutexPoseGraph;
 
         FullSystem *fullsystem = nullptr;

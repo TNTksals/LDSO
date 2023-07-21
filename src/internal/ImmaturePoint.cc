@@ -7,32 +7,36 @@
 #include "internal/FrameHessian.h"
 #include "internal/ResidualProjections.h"
 
-namespace ldso {
+namespace ldso
+{
 
-    namespace internal {
+    namespace internal
+    {
 
         ImmaturePoint::ImmaturePoint(shared_ptr<Frame> hostFrame, shared_ptr<Feature> hostFeat, float type,
-                                     shared_ptr<CalibHessian> &HCalib) :
-                my_type(type), feature(hostFeat) {
+                                     shared_ptr<CalibHessian> &HCalib) : my_type(type), feature(hostFeat)
+        {
             assert(hostFrame->frameHessian);
             gradH.setZero();
             shared_ptr<FrameHessian> host = hostFrame->frameHessian;
             float u = feature->uv[0], v = feature->uv[1];
-            for (int idx = 0; idx < patternNum; idx++) {
+            for (int idx = 0; idx < patternNum; idx++)
+            {
                 int dx = patternP[idx][0];
                 int dy = patternP[idx][1];
 
                 Vec3f ptc = getInterpolatedElement33BiLin(host->dI, u + dx, v + dy, wG[0]);
 
                 color[idx] = ptc[0];
-                if (!std::isfinite(color[idx])) {
+                if (!std::isfinite(color[idx]))
+                {
                     energyTH = NAN;
                     return;
                 }
 
                 gradH += ptc.tail<2>() * ptc.tail<2>().transpose();
                 weights[idx] = sqrtf(
-                        setting_outlierTHSumComponent / (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
+                    setting_outlierTHSumComponent / (setting_outlierTHSumComponent + ptc.tail<2>().squaredNorm()));
             }
             energyTH = patternNum * setting_outlierTH;
             energyTH *= setting_overallEnergyTHWeight * setting_overallEnergyTHWeight;
@@ -45,11 +49,13 @@ namespace ldso {
          * * SKIP -> point has not been updated.
          */
         ImmaturePointStatus ImmaturePoint::traceOn(
-                shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi,
-                const Vec3f &hostToFrame_Kt, const Vec2f &hostToFrame_affine,
-                shared_ptr<CalibHessian> HCalib) {
+            shared_ptr<FrameHessian> frame, const Mat33f &hostToFrame_KRKi,
+            const Vec3f &hostToFrame_Kt, const Vec2f &hostToFrame_affine,
+            shared_ptr<CalibHessian> HCalib)
+        {
 
-            if (lastTraceStatus == ImmaturePointStatus::IPS_OOB) return lastTraceStatus;
+            if (lastTraceStatus == ImmaturePointStatus::IPS_OOB)
+                return lastTraceStatus;
             float maxPixSearch = (wG[0] + hG[0]) * setting_maxPixSearch;
 
             // ============== project min and max. return if one of them is OOB ===================
@@ -60,7 +66,8 @@ namespace ldso {
             float uMin = ptpMin[0] / ptpMin[2];
             float vMin = ptpMin[1] / ptpMin[2];
 
-            if (!(uMin > 4 && vMin > 4 && uMin < wG[0] - 5 && vMin < hG[0] - 5)) {
+            if (!(uMin > 4 && vMin > 4 && uMin < wG[0] - 5 && vMin < hG[0] - 5))
+            {
                 // out of boundary
                 lastTraceUV = Vec2f(-1, -1);
                 lastTracePixelInterval = 0;
@@ -72,15 +79,17 @@ namespace ldso {
             float dist;
             float uMax;
             float vMax;
-            Vec3f ptpMax;   // 按照最远距离来算，在当前帧的投影
+            Vec3f ptpMax; // 按照最远距离来算，在当前帧的投影
 
-            if (std::isfinite(idepth_max)) {
+            if (std::isfinite(idepth_max))
+            {
                 // 有限远，finite max depth
                 ptpMax = pr + hostToFrame_Kt * idepth_max;
                 uMax = ptpMax[0] / ptpMax[2];
                 vMax = ptpMax[1] / ptpMax[2];
 
-                if (!(uMax > 4 && vMax > 4 && uMax < wG[0] - 5 && vMax < hG[0] - 5)) {
+                if (!(uMax > 4 && vMax > 4 && uMax < wG[0] - 5 && vMax < hG[0] - 5))
+                {
                     lastTraceUV = Vec2f(-1, -1);
                     lastTracePixelInterval = 0;
                     return lastTraceStatus = ImmaturePointStatus::IPS_OOB;
@@ -89,14 +98,17 @@ namespace ldso {
                 // ============== check their distance. everything below 2px is OK (-> skip). ===================
                 dist = (uMin - uMax) * (uMin - uMax) + (vMin - vMax) * (vMin - vMax);
                 dist = sqrtf(dist);
-                if (dist < setting_trace_slackInterval /* =2 by default */ ) {
+                if (dist < setting_trace_slackInterval /* =2 by default */)
+                {
                     // 极线上两个像素非常接近
                     lastTraceUV = Vec2f(uMax + uMin, vMax + vMin) * 0.5;
                     lastTracePixelInterval = dist;
                     return lastTraceStatus = ImmaturePointStatus::IPS_SKIPPED;
                 }
                 assert(dist > 0);
-            } else {
+            }
+            else
+            {
                 dist = maxPixSearch;
 
                 // 任取一个距离，idepth=0.01, so depth=100
@@ -115,7 +127,8 @@ namespace ldso {
                 vMax = vMin + dist * dy * d;
 
                 // may still be out!
-                if (!(uMax > 4 && vMax > 4 && uMax < wG[0] - 5 && vMax < hG[0] - 5)) {
+                if (!(uMax > 4 && vMax > 4 && uMax < wG[0] - 5 && vMax < hG[0] - 5))
+                {
                     lastTraceUV = Vec2f(-1, -1);
                     lastTracePixelInterval = 0;
                     return lastTraceStatus = ImmaturePointStatus::IPS_OOB;
@@ -124,7 +137,8 @@ namespace ldso {
             }
 
             // set OOB if scale change too big.
-            if (!(idepth_min < 0 || (ptpMin[2] > 0.75 && ptpMin[2] < 1.5))) {
+            if (!(idepth_min < 0 || (ptpMin[2] > 0.75 && ptpMin[2] < 1.5)))
+            {
                 lastTraceUV = Vec2f(-1, -1);
                 lastTracePixelInterval = 0;
                 return lastTraceStatus = ImmaturePointStatus::IPS_OOB;
@@ -138,19 +152,22 @@ namespace ldso {
             float b = (Vec2f(dy, -dx).transpose() * gradH * Vec2f(dy, -dx));
             float errorInPixel = 0.2f + 0.2f * (a + b) / a;
 
-            if (errorInPixel * setting_trace_minImprovementFactor > dist && std::isfinite(idepth_max)) {
+            if (errorInPixel * setting_trace_minImprovementFactor > dist && std::isfinite(idepth_max))
+            {
                 lastTraceUV = Vec2f(uMax + uMin, vMax + vMin) * 0.5;
                 lastTracePixelInterval = dist;
                 return lastTraceStatus = ImmaturePointStatus::IPS_BADCONDITION;
             }
 
-            if (errorInPixel > 10) errorInPixel = 10;
+            if (errorInPixel > 10)
+                errorInPixel = 10;
 
             // ============== do the discrete search ===================
             dx /= dist;
             dy /= dist;
 
-            if (dist > maxPixSearch) {
+            if (dist > maxPixSearch)
+            {
                 uMax = uMin + maxPixSearch * dx;
                 vMax = vMin + maxPixSearch * dy;
                 dist = maxPixSearch;
@@ -163,12 +180,12 @@ namespace ldso {
             float ptx = uMin - randShift * dx;
             float pty = vMin - randShift * dy;
 
-
             Vec2f rotatetPattern[MAX_RES_PER_POINT];
             for (int idx = 0; idx < patternNum; idx++)
                 rotatetPattern[idx] = Rplane * Vec2f(patternP[idx][0], patternP[idx][1]);
 
-            if (!std::isfinite(dx) || !std::isfinite(dy)) {
+            if (!std::isfinite(dx) || !std::isfinite(dy))
+            {
                 lastTracePixelInterval = 0;
                 lastTraceUV = Vec2f(-1, -1);
                 return lastTraceStatus = ImmaturePointStatus::IPS_OOB;
@@ -177,27 +194,32 @@ namespace ldso {
             float errors[100];
             float bestU = 0, bestV = 0, bestEnergy = 1e10;
             int bestIdx = -1;
-            if (numSteps >= 100) numSteps = 99;
+            if (numSteps >= 100)
+                numSteps = 99;
 
-            for (int i = 0; i < numSteps; i++) {
+            for (int i = 0; i < numSteps; i++)
+            {
                 float energy = 0;
-                for (int idx = 0; idx < patternNum; idx++) {
+                for (int idx = 0; idx < patternNum; idx++)
+                {
                     float hitColor = getInterpolatedElement31(frame->dI,
-                                                              (float) (ptx + rotatetPattern[idx][0]),
-                                                              (float) (pty + rotatetPattern[idx][1]),
+                                                              (float)(ptx + rotatetPattern[idx][0]),
+                                                              (float)(pty + rotatetPattern[idx][1]),
                                                               wG[0]);
 
-                    if (!std::isfinite(hitColor)) {
+                    if (!std::isfinite(hitColor))
+                    {
                         energy += 1e5;
                         continue;
                     }
-                    float residual = hitColor - (float) (hostToFrame_affine[0] * color[idx] + hostToFrame_affine[1]);
+                    float residual = hitColor - (float)(hostToFrame_affine[0] * color[idx] + hostToFrame_affine[1]);
                     float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
                     energy += hw * residual * residual * (2 - hw);
                 }
 
                 errors[i] = energy;
-                if (energy < bestEnergy) {
+                if (energy < bestEnergy)
+                {
                     bestU = ptx;
                     bestV = pty;
                     bestEnergy = energy;
@@ -208,30 +230,34 @@ namespace ldso {
                 pty += dy;
             }
 
-
             // find best score outside a +-2px radius.
             float secondBest = 1e10;
-            for (int i = 0; i < numSteps; i++) {
+            for (int i = 0; i < numSteps; i++)
+            {
                 if ((i < bestIdx - setting_minTraceTestRadius || i > bestIdx + setting_minTraceTestRadius) &&
                     errors[i] < secondBest)
                     secondBest = errors[i];
             }
             float newQuality = secondBest / bestEnergy;
-            if (newQuality < quality || numSteps > 10) quality = newQuality;
-
+            if (newQuality < quality || numSteps > 10)
+                quality = newQuality;
 
             // ============== do GN optimization ===================
             float uBak = bestU, vBak = bestV, gnstepsize = 1, stepBack = 0;
-            if (setting_trace_GNIterations > 0) bestEnergy = 1e5;
+            if (setting_trace_GNIterations > 0)
+                bestEnergy = 1e5;
             int gnStepsGood = 0, gnStepsBad = 0;
-            for (int it = 0; it < setting_trace_GNIterations; it++) {
+            for (int it = 0; it < setting_trace_GNIterations; it++)
+            {
                 float H = 1, b = 0, energy = 0;
-                for (int idx = 0; idx < patternNum; idx++) {
+                for (int idx = 0; idx < patternNum; idx++)
+                {
                     Vec3f hitColor = getInterpolatedElement33(frame->dI,
-                                                              (float) (bestU + rotatetPattern[idx][0]),
-                                                              (float) (bestV + rotatetPattern[idx][1]), wG[0]);
+                                                              (float)(bestU + rotatetPattern[idx][0]),
+                                                              (float)(bestV + rotatetPattern[idx][1]), wG[0]);
 
-                    if (!std::isfinite((float) hitColor[0])) {
+                    if (!std::isfinite((float)hitColor[0]))
+                    {
                         energy += 1e5;
                         continue;
                     }
@@ -244,22 +270,27 @@ namespace ldso {
                     energy += weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
                 }
 
-
-                if (energy > bestEnergy) {
+                if (energy > bestEnergy)
+                {
                     gnStepsBad++;
 
                     // do a smaller step from old point.
                     stepBack *= 0.5;
                     bestU = uBak + stepBack * dx;
                     bestV = vBak + stepBack * dy;
-                } else {
+                }
+                else
+                {
                     gnStepsGood++;
 
                     float step = -gnstepsize * b / H;
-                    if (step < -0.5) step = -0.5;
-                    else if (step > 0.5) step = 0.5;
+                    if (step < -0.5)
+                        step = -0.5;
+                    else if (step > 0.5)
+                        step = 0.5;
 
-                    if (!std::isfinite(step)) step = 0;
+                    if (!std::isfinite(step))
+                        step = 0;
 
                     uBak = bestU;
                     vBak = bestV;
@@ -270,11 +301,13 @@ namespace ldso {
                     bestEnergy = energy;
                 }
 
-                if (fabsf(stepBack) < setting_trace_GNThreshold) break;
+                if (fabsf(stepBack) < setting_trace_GNThreshold)
+                    break;
             }
 
             // ============== detect energy-based outlier. ===================
-            if (!(bestEnergy < energyTH * setting_trace_extraSlackOnTH)) {
+            if (!(bestEnergy < energyTH * setting_trace_extraSlackOnTH))
+            {
                 lastTracePixelInterval = 0;
                 lastTraceUV = Vec2f(-1, -1);
                 if (lastTraceStatus == ImmaturePointStatus::IPS_OUTLIER)
@@ -284,21 +317,25 @@ namespace ldso {
             }
 
             // ============== set new interval ===================
-            if (dx * dx > dy * dy) {
+            if (dx * dx > dy * dy)
+            {
                 idepth_min = (pr[2] * (bestU - errorInPixel * dx) - pr[0]) /
                              (hostToFrame_Kt[0] - hostToFrame_Kt[2] * (bestU - errorInPixel * dx));
                 idepth_max = (pr[2] * (bestU + errorInPixel * dx) - pr[0]) /
                              (hostToFrame_Kt[0] - hostToFrame_Kt[2] * (bestU + errorInPixel * dx));
-            } else {
+            }
+            else
+            {
                 idepth_min = (pr[2] * (bestV - errorInPixel * dy) - pr[1]) /
                              (hostToFrame_Kt[1] - hostToFrame_Kt[2] * (bestV - errorInPixel * dy));
                 idepth_max = (pr[2] * (bestV + errorInPixel * dy) - pr[1]) /
                              (hostToFrame_Kt[1] - hostToFrame_Kt[2] * (bestV + errorInPixel * dy));
             }
-            if (idepth_min > idepth_max) std::swap<float>(idepth_min, idepth_max);
+            if (idepth_min > idepth_max)
+                std::swap<float>(idepth_min, idepth_max);
 
-
-            if (!std::isfinite(idepth_min) || !std::isfinite(idepth_max) || (idepth_max < 0)) {
+            if (!std::isfinite(idepth_min) || !std::isfinite(idepth_max) || (idepth_max < 0))
+            {
                 lastTracePixelInterval = 0;
                 lastTraceUV = Vec2f(-1, -1);
                 return lastTraceStatus = ImmaturePointStatus::IPS_OUTLIER;
@@ -310,11 +347,13 @@ namespace ldso {
         }
 
         double ImmaturePoint::linearizeResidual(
-                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float &Hdd, float &bd,
-                float idepth) {
+            shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+            shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float &Hdd, float &bd,
+            float idepth)
+        {
 
-            if (tmpRes->state_state == ResState::OOB) {
+            if (tmpRes->state_state == ResState::OOB)
+            {
                 tmpRes->state_NewState = ResState::OOB;
                 return tmpRes->state_energy;
             }
@@ -331,7 +370,8 @@ namespace ldso {
 
             Vec2f affLL = precalc->PRE_aff_mode;
 
-            for (int idx = 0; idx < patternNum; idx++) {
+            for (int idx = 0; idx < patternNum; idx++)
+            {
                 int dx = patternP[idx][0];
                 int dy = patternP[idx][1];
 
@@ -340,15 +380,16 @@ namespace ldso {
                 Vec3f KliP;
 
                 if (!projectPoint(this->feature->uv[0], this->feature->uv[1], idepth, dx, dy, HCalib,
-                                  PRE_RTll, PRE_tTll, drescale, u, v, Ku, Kv, KliP, new_idepth)) {
+                                  PRE_RTll, PRE_tTll, drescale, u, v, Ku, Kv, KliP, new_idepth))
+                {
                     tmpRes->state_NewState = ResState::OOB;
                     return tmpRes->state_energy;
                 }
 
-
                 Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
 
-                if (!std::isfinite((float) hitColor[0])) {
+                if (!std::isfinite((float)hitColor[0]))
+                {
                     tmpRes->state_NewState = ResState::OOB;
                     return tmpRes->state_energy;
                 }
@@ -368,11 +409,13 @@ namespace ldso {
                 bd += (hw * residual) * d_idepth;
             }
 
-
-            if (energyLeft > energyTH * outlierTHSlack) {
+            if (energyLeft > energyTH * outlierTHSlack)
+            {
                 energyLeft = energyTH * outlierTHSlack;
                 tmpRes->state_NewState = ResState::OUTLIER;
-            } else {
+            }
+            else
+            {
                 tmpRes->state_NewState = ResState::IN;
             }
 
@@ -381,8 +424,9 @@ namespace ldso {
         }
 
         float ImmaturePoint::calcResidual(
-                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
+            shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+            shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth)
+        {
             shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
             shared_ptr<FrameHessian> target = tmpRes->target.lock();
             FrameFramePrecalc *precalc = &(host->targetPrecalc[target->idx]);
@@ -392,13 +436,18 @@ namespace ldso {
             const Vec3f &PRE_KtTll = precalc->PRE_KtTll;
             Vec2f affLL = precalc->PRE_aff_mode;
 
-            for (int idx = 0; idx < patternNum; idx++) {
+            for (int idx = 0; idx < patternNum; idx++)
+            {
                 float Ku, Kv;
                 if (!projectPoint(this->feature->uv[0] + patternP[idx][0], this->feature->uv[1] + patternP[idx][1],
-                                  idepth, PRE_KRKiTll, PRE_KtTll, Ku, Kv)) { return 1e10; }
+                                  idepth, PRE_KRKiTll, PRE_KtTll, Ku, Kv))
+                {
+                    return 1e10;
+                }
 
                 Vec3f hitColor = (getInterpolatedElement33(dIl, Ku, Kv, wG[0]));
-                if (!std::isfinite((float) hitColor[0])) {
+                if (!std::isfinite((float)hitColor[0]))
+                {
                     return 1e10;
                 }
 
@@ -408,15 +457,17 @@ namespace ldso {
                 energyLeft += weights[idx] * weights[idx] * hw * residual * residual * (2 - hw);
             }
 
-            if (energyLeft > energyTH * outlierTHSlack) {
+            if (energyLeft > energyTH * outlierTHSlack)
+            {
                 energyLeft = energyTH * outlierTHSlack;
             }
             return energyLeft;
         }
 
         float ImmaturePoint::getdPixdd(
-                shared_ptr<CalibHessian> HCalib,
-                shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth) {
+            shared_ptr<CalibHessian> HCalib,
+            shared_ptr<ImmaturePointTemporaryResidual> tmpRes, float idepth)
+        {
 
             shared_ptr<FrameHessian> host = feature->host.lock()->frameHessian;
             shared_ptr<FrameHessian> target = tmpRes->target.lock();

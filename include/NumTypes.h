@@ -25,7 +25,7 @@ typedef Sophus::Sim3d Sim3;
 // note that the types below which have "C" means camera parameters
 const int CPARS = 4;
 
-const int MAX_RES_PER_POINT = 8;  // number of residuals in each point, see dso's paper for the pattern
+const int MAX_RES_PER_POINT = 8; // number of residuals in each point, see dso's paper for the pattern
 
 // double matricies
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic> MatXX;
@@ -126,6 +126,5 @@ typedef vector<Vec3f, Eigen::aligned_allocator<Vec3f>> VecVec3f;
 
 // DBoW vocabulary
 typedef DBoW3::Vocabulary ORBVocabulary;
-
 
 #endif // LDSO_NUM_TYPES_H_

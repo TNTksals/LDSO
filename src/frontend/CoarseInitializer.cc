@@ -7,11 +7,13 @@
 
 #include <iostream>
 
+namespace ldso
+{
 
-namespace ldso {
-
-    CoarseInitializer::CoarseInitializer(int ww, int hh) : thisToNext_aff(0, 0), thisToNext(SE3()) {
-        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
+    CoarseInitializer::CoarseInitializer(int ww, int hh) : thisToNext_aff(0, 0), thisToNext(SE3())
+    {
+        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++)
+        {
             points[lvl] = 0;
             numPoints[lvl] = 0;
         }
@@ -28,16 +30,20 @@ namespace ldso {
         wM.diagonal()[7] = SCALE_B;
     }
 
-    CoarseInitializer::~CoarseInitializer() {
-        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
-            if (points[lvl] != 0) delete[] points[lvl];
+    CoarseInitializer::~CoarseInitializer()
+    {
+        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++)
+        {
+            if (points[lvl] != 0)
+                delete[] points[lvl];
         }
 
         delete[] JbBuffer;
         delete[] JbBuffer_new;
     }
 
-    bool CoarseInitializer::trackFrame(shared_ptr<FrameHessian> newFrameHessian) {
+    bool CoarseInitializer::trackFrame(shared_ptr<FrameHessian> newFrameHessian)
+    {
 
         newFrame = newFrameHessian;
         int maxIterations[] = {5, 5, 10, 30, 50};
@@ -47,12 +53,15 @@ namespace ldso {
         regWeight = 0.8;
         couplingWeight = 1;
 
-        if (!snapped) {
+        if (!snapped)
+        {
             thisToNext.translation().setZero();
-            for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
+            for (int lvl = 0; lvl < pyrLevelsUsed; lvl++)
+            {
                 int npts = numPoints[lvl];
                 Pnt *ptsl = points[lvl];
-                for (int i = 0; i < npts; i++) {
+                for (int i = 0; i < npts; i++)
+                {
                     ptsl[i].iR = 1;
                     ptsl[i].idepth_new = 1;
                     ptsl[i].lastHessian = 0;
@@ -67,10 +76,9 @@ namespace ldso {
             refToNew_aff_current = AffLight(logf(newFrame->ab_exposure / firstFrame->ab_exposure),
                                             0); // coarse approximation.
 
-
         Vec3f latestRes = Vec3f::Zero();
-        for (int lvl = pyrLevelsUsed - 1; lvl >= 0; lvl--) {
-
+        for (int lvl = pyrLevelsUsed - 1; lvl >= 0; lvl--)
+        {
 
             if (lvl < pyrLevelsUsed - 1)
                 propagateDown(lvl + 1);
@@ -86,31 +94,32 @@ namespace ldso {
             int fails = 0;
 
             int iteration = 0;
-            while (true) {
+            while (true)
+            {
                 Mat88f Hl = H;
-                for (int i = 0; i < 8; i++) Hl(i, i) *= (1 + lambda);
+                for (int i = 0; i < 8; i++)
+                    Hl(i, i) *= (1 + lambda);
                 Hl -= Hsc * (1 / (1 + lambda));
                 Vec8f bl = b - bsc * (1 / (1 + lambda));
 
                 Hl = wM * Hl * wM * (0.01f / (w[lvl] * h[lvl]));
                 bl = wM * bl * (0.01f / (w[lvl] * h[lvl]));
 
-
                 Vec8f inc;
-                if (fixAffine) {
+                if (fixAffine)
+                {
                     inc.head<6>() = -(wM.toDenseMatrix().topLeftCorner<6, 6>() *
                                       (Hl.topLeftCorner<6, 6>().ldlt().solve(bl.head<6>())));
                     inc.tail<2>().setZero();
-                } else
-                    inc = -(wM * (Hl.ldlt().solve(bl)));    //=-H^-1 * b.
-
+                }
+                else
+                    inc = -(wM * (Hl.ldlt().solve(bl))); //=-H^-1 * b.
 
                 SE3 refToNew_new = SE3::exp(inc.head<6>().cast<double>()) * refToNew_current;
                 AffLight refToNew_aff_new = refToNew_aff_current;
                 refToNew_aff_new.a += inc[6];
                 refToNew_aff_new.b += inc[7];
                 doStep(lvl, lambda, inc);
-
 
                 Mat88f H_new, Hsc_new;
                 Vec8f b_new, bsc_new;
@@ -120,10 +129,10 @@ namespace ldso {
                 float eTotalNew = (resNew[0] + resNew[1] + regEnergy[1]);
                 float eTotalOld = (resOld[0] + resOld[1] + regEnergy[0]);
 
-
                 bool accept = eTotalOld > eTotalNew;
 
-                if (accept) {
+                if (accept)
+                {
 
                     if (resNew[1] == alphaK * numPoints[lvl])
                         snapped = true;
@@ -138,28 +147,32 @@ namespace ldso {
                     optReg(lvl);
                     lambda *= 0.5;
                     fails = 0;
-                    if (lambda < 0.0001) lambda = 0.0001;
-                } else {
+                    if (lambda < 0.0001)
+                        lambda = 0.0001;
+                }
+                else
+                {
                     fails++;
                     lambda *= 4;
-                    if (lambda > 10000) lambda = 10000;
+                    if (lambda > 10000)
+                        lambda = 10000;
                 }
 
                 bool quitOpt = false;
 
-                if (!(inc.norm() > eps) || iteration >= maxIterations[lvl] || fails >= 2) {
+                if (!(inc.norm() > eps) || iteration >= maxIterations[lvl] || fails >= 2)
+                {
                     Mat88f H, Hsc;
                     Vec8f b, bsc;
 
                     quitOpt = true;
                 }
 
-
-                if (quitOpt) break;
+                if (quitOpt)
+                    break;
                 iteration++;
             }
             latestRes = resOld;
-
         }
 
         thisToNext = refToNew_current;
@@ -169,7 +182,8 @@ namespace ldso {
             propagateUp(i);
 
         frameID++;
-        if (!snapped) snappedAt = 0;
+        if (!snapped)
+            snappedAt = 0;
 
         if (snapped && snappedAt == 0)
             snappedAt = frameID;
@@ -179,10 +193,11 @@ namespace ldso {
 
     // calculates residual, Hessian and Hessian-block neede for re-substituting depth.
     Vec3f CoarseInitializer::calcResAndGS(
-            int lvl, Mat88f &H_out, Vec8f &b_out,
-            Mat88f &H_out_sc, Vec8f &b_out_sc,
-            const SE3 &refToNew, AffLight refToNew_aff,
-            bool plot) {
+        int lvl, Mat88f &H_out, Vec8f &b_out,
+        Mat88f &H_out_sc, Vec8f &b_out_sc,
+        const SE3 &refToNew, AffLight refToNew_aff,
+        bool plot)
+    {
         int wl = w[lvl], hl = h[lvl];
         Eigen::Vector3f *colorRef = firstFrame->dIp[lvl];
         Eigen::Vector3f *colorNew = newFrame->dIp[lvl];
@@ -200,16 +215,17 @@ namespace ldso {
         acc9.initialize();
         E.initialize();
 
-
         int npts = numPoints[lvl];
         Pnt *ptsl = points[lvl];
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
 
             Pnt *point = ptsl + i;
 
             point->maxstep = 1e10;
-            if (!point->isGood) {
-                E.updateSingle((float) (point->energy[0]));
+            if (!point->isGood)
+            {
+                E.updateSingle((float)(point->energy[0]));
                 point->energy_new = point->energy;
                 point->isGood_new = false;
                 continue;
@@ -230,10 +246,10 @@ namespace ldso {
             // sum over all residuals.
             bool isGood = true;
             float energy = 0;
-            for (int idx = 0; idx < patternNum; idx++) {
+            for (int idx = 0; idx < patternNum; idx++)
+            {
                 int dx = patternP[idx][0];
                 int dy = patternP[idx][1];
-
 
                 Vec3f pt = RKi * Vec3f(point->u + dx, point->v + dy, 1) + t * point->idepth_new;
                 float u = pt[0] / pt[2];
@@ -242,32 +258,33 @@ namespace ldso {
                 float Kv = fyl * v + cyl;
                 float new_idepth = point->idepth_new / pt[2];
 
-                if (!(Ku > 1 && Kv > 1 && Ku < wl - 2 && Kv < hl - 2 && new_idepth > 0)) {
+                if (!(Ku > 1 && Kv > 1 && Ku < wl - 2 && Kv < hl - 2 && new_idepth > 0))
+                {
                     isGood = false;
                     break;
                 }
 
                 Vec3f hitColor = getInterpolatedElement33(colorNew, Ku, Kv, wl);
-                //Vec3f hitColor = getInterpolatedElement33BiCub(colorNew, Ku, Kv, wl);
+                // Vec3f hitColor = getInterpolatedElement33BiCub(colorNew, Ku, Kv, wl);
 
-                //float rlR = colorRef[point->u+dx + (point->v+dy) * wl][0];
+                // float rlR = colorRef[point->u+dx + (point->v+dy) * wl][0];
                 float rlR = getInterpolatedElement31(colorRef, point->u + dx, point->v + dy, wl);
 
-                if (!std::isfinite(rlR) || !std::isfinite((float) hitColor[0])) {
+                if (!std::isfinite(rlR) || !std::isfinite((float)hitColor[0]))
+                {
                     isGood = false;
                     break;
                 }
-
 
                 float residual = hitColor[0] - r2new_aff[0] * rlR - r2new_aff[1];
                 float hw = fabs(residual) < setting_huberTH ? 1 : setting_huberTH / fabs(residual);
                 energy += hw * residual * residual * (2 - hw);
 
-
                 float dxdd = (t[0] - t[2] * u) / pt[2];
                 float dydd = (t[1] - t[2] * v) / pt[2];
 
-                if (hw < 1) hw = sqrtf(hw);
+                if (hw < 1)
+                    hw = sqrtf(hw);
                 float dxInterp = hw * hitColor[1] * fxl;
                 float dyInterp = hw * hitColor[2] * fyl;
                 dp0[idx] = new_idepth * dxInterp;
@@ -282,7 +299,8 @@ namespace ldso {
                 r[idx] = hw * residual;
 
                 float maxstep = 1.0f / Vec2f(dxdd * fxl, dydd * fyl).norm();
-                if (maxstep < point->maxstep) point->maxstep = maxstep;
+                if (maxstep < point->maxstep)
+                    point->maxstep = maxstep;
 
                 // immediately compute dp*dd' and dd*dd' in JbBuffer1.
                 JbBuffer_new[i][0] += dp0[idx] * dd[idx];
@@ -297,13 +315,13 @@ namespace ldso {
                 JbBuffer_new[i][9] += dd[idx] * dd[idx];
             }
 
-            if (!isGood || energy > point->outlierTH * 20) {
-                E.updateSingle((float) (point->energy[0]));
+            if (!isGood || energy > point->outlierTH * 20)
+            {
+                E.updateSingle((float)(point->energy[0]));
                 point->isGood_new = false;
                 point->energy_new = point->energy;
                 continue;
             }
-
 
             // add into energy.
             E.updateSingle(energy);
@@ -313,24 +331,21 @@ namespace ldso {
             // update Hessian matrix.
             for (int i = 0; i + 3 < patternNum; i += 4)
                 acc9.updateSSE(
-                        _mm_load_ps(((float *) (&dp0)) + i),
-                        _mm_load_ps(((float *) (&dp1)) + i),
-                        _mm_load_ps(((float *) (&dp2)) + i),
-                        _mm_load_ps(((float *) (&dp3)) + i),
-                        _mm_load_ps(((float *) (&dp4)) + i),
-                        _mm_load_ps(((float *) (&dp5)) + i),
-                        _mm_load_ps(((float *) (&dp6)) + i),
-                        _mm_load_ps(((float *) (&dp7)) + i),
-                        _mm_load_ps(((float *) (&r)) + i));
-
+                    _mm_load_ps(((float *)(&dp0)) + i),
+                    _mm_load_ps(((float *)(&dp1)) + i),
+                    _mm_load_ps(((float *)(&dp2)) + i),
+                    _mm_load_ps(((float *)(&dp3)) + i),
+                    _mm_load_ps(((float *)(&dp4)) + i),
+                    _mm_load_ps(((float *)(&dp5)) + i),
+                    _mm_load_ps(((float *)(&dp6)) + i),
+                    _mm_load_ps(((float *)(&dp7)) + i),
+                    _mm_load_ps(((float *)(&r)) + i));
 
             for (int i = ((patternNum >> 2) << 2); i < patternNum; i++)
                 acc9.updateSingle(
-                        (float) dp0[i], (float) dp1[i], (float) dp2[i], (float) dp3[i],
-                        (float) dp4[i], (float) dp5[i], (float) dp6[i], (float) dp7[i],
-                        (float) r[i]);
-
-
+                    (float)dp0[i], (float)dp1[i], (float)dp2[i], (float)dp3[i],
+                    (float)dp4[i], (float)dp5[i], (float)dp6[i], (float)dp7[i],
+                    (float)r[i]);
         }
 
         E.finish();
@@ -339,13 +354,17 @@ namespace ldso {
         // calculate alpha energy, and decide if we cap it.
         Accumulator11 EAlpha;
         EAlpha.initialize();
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
             Pnt *point = ptsl + i;
-            if (!point->isGood_new) {
-                E.updateSingle((float) (point->energy[1]));
-            } else {
+            if (!point->isGood_new)
+            {
+                E.updateSingle((float)(point->energy[1]));
+            }
+            else
+            {
                 point->energy_new[1] = (point->idepth_new - 1) * (point->idepth_new - 1);
-                E.updateSingle((float) (point->energy_new[1]));
+                E.updateSingle((float)(point->energy_new[1]));
             }
         }
         EAlpha.finish();
@@ -353,15 +372,19 @@ namespace ldso {
 
         // compute alpha opt.
         float alphaOpt;
-        if (alphaEnergy > alphaK * npts) {
+        if (alphaEnergy > alphaK * npts)
+        {
             alphaOpt = 0;
             alphaEnergy = alphaK * npts;
-        } else {
+        }
+        else
+        {
             alphaOpt = alphaW;
         }
 
         acc9SC.initialize();
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
             Pnt *point = ptsl + i;
             if (!point->isGood_new)
                 continue;
@@ -371,25 +394,26 @@ namespace ldso {
             JbBuffer_new[i][8] += alphaOpt * (point->idepth_new - 1);
             JbBuffer_new[i][9] += alphaOpt;
 
-            if (alphaOpt == 0) {
+            if (alphaOpt == 0)
+            {
                 JbBuffer_new[i][8] += couplingWeight * (point->idepth_new - point->iR);
                 JbBuffer_new[i][9] += couplingWeight;
             }
 
             JbBuffer_new[i][9] = 1 / (1 + JbBuffer_new[i][9]);
             acc9SC.updateSingleWeighted(
-                    (float) JbBuffer_new[i][0], (float) JbBuffer_new[i][1], (float) JbBuffer_new[i][2],
-                    (float) JbBuffer_new[i][3],
-                    (float) JbBuffer_new[i][4], (float) JbBuffer_new[i][5], (float) JbBuffer_new[i][6],
-                    (float) JbBuffer_new[i][7],
-                    (float) JbBuffer_new[i][8], (float) JbBuffer_new[i][9]);
+                (float)JbBuffer_new[i][0], (float)JbBuffer_new[i][1], (float)JbBuffer_new[i][2],
+                (float)JbBuffer_new[i][3],
+                (float)JbBuffer_new[i][4], (float)JbBuffer_new[i][5], (float)JbBuffer_new[i][6],
+                (float)JbBuffer_new[i][7],
+                (float)JbBuffer_new[i][8], (float)JbBuffer_new[i][9]);
         }
         acc9SC.finish();
 
-        H_out = acc9.H.topLeftCorner<8, 8>();// / acc9.num;
-        b_out = acc9.H.topRightCorner<8, 1>();// / acc9.num;
-        H_out_sc = acc9SC.H.topLeftCorner<8, 8>();// / acc9.num;
-        b_out_sc = acc9SC.H.topRightCorner<8, 1>();// / acc9.num;
+        H_out = acc9.H.topLeftCorner<8, 8>();       // / acc9.num;
+        b_out = acc9.H.topRightCorner<8, 1>();      // / acc9.num;
+        H_out_sc = acc9SC.H.topLeftCorner<8, 8>();  // / acc9.num;
+        b_out_sc = acc9SC.H.topRightCorner<8, 1>(); // / acc9.num;
 
         H_out(0, 0) += alphaOpt * npts;
         H_out(1, 1) += alphaOpt * npts;
@@ -400,66 +424,76 @@ namespace ldso {
         b_out[1] += tlog[1] * alphaOpt * npts;
         b_out[2] += tlog[2] * alphaOpt * npts;
 
-
         return Vec3f(E.A, alphaEnergy, E.num);
     }
 
-    float CoarseInitializer::rescale() {
+    float CoarseInitializer::rescale()
+    {
         float factor = 20 * thisToNext.translation().norm();
         return factor;
     }
 
-    Vec3f CoarseInitializer::calcEC(int lvl) {
-        if (!snapped) return Vec3f(0, 0, numPoints[lvl]);
+    Vec3f CoarseInitializer::calcEC(int lvl)
+    {
+        if (!snapped)
+            return Vec3f(0, 0, numPoints[lvl]);
         AccumulatorX<2> E;
         E.initialize();
         int npts = numPoints[lvl];
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
             Pnt *point = points[lvl] + i;
-            if (!point->isGood_new) continue;
+            if (!point->isGood_new)
+                continue;
             float rOld = (point->idepth - point->iR);
             float rNew = (point->idepth_new - point->iR);
             E.updateNoWeight(Vec2f(rOld * rOld, rNew * rNew));
-
         }
         E.finish();
 
         return Vec3f(couplingWeight * E.A1m[0], couplingWeight * E.A1m[1], E.num);
     }
 
-    void CoarseInitializer::optReg(int lvl) {
+    void CoarseInitializer::optReg(int lvl)
+    {
         int npts = numPoints[lvl];
         Pnt *ptsl = points[lvl];
-        if (!snapped) {
+        if (!snapped)
+        {
             for (int i = 0; i < npts; i++)
                 ptsl[i].iR = 1;
             return;
         }
 
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
             Pnt *point = ptsl + i;
-            if (!point->isGood) continue;
+            if (!point->isGood)
+                continue;
 
             float idnn[10];
             int nnn = 0;
-            for (int j = 0; j < 10; j++) {
-                if (point->neighbours[j] == -1) continue;
+            for (int j = 0; j < 10; j++)
+            {
+                if (point->neighbours[j] == -1)
+                    continue;
                 Pnt *other = ptsl + point->neighbours[j];
-                if (!other->isGood) continue;
+                if (!other->isGood)
+                    continue;
                 idnn[nnn] = other->iR;
                 nnn++;
             }
 
-            if (nnn > 2) {
+            if (nnn > 2)
+            {
                 std::nth_element(idnn, idnn + nnn / 2, idnn + nnn);
                 point->iR = (1 - regWeight) * point->idepth + regWeight * idnn[nnn / 2];
             }
         }
-
     }
 
-
-    void CoarseInitializer::propagateUp(int srcLvl) {
+    void CoarseInitializer::propagateUp(int srcLvl)
+    {
         assert(srcLvl + 1 < pyrLevelsUsed);
         // set idepth of target
 
@@ -469,24 +503,29 @@ namespace ldso {
         Pnt *ptst = points[srcLvl + 1];
 
         // set to zero.
-        for (int i = 0; i < nptst; i++) {
+        for (int i = 0; i < nptst; i++)
+        {
             Pnt *parent = ptst + i;
             parent->iR = 0;
             parent->iRSumNum = 0;
         }
 
-        for (int i = 0; i < nptss; i++) {
+        for (int i = 0; i < nptss; i++)
+        {
             Pnt *point = ptss + i;
-            if (!point->isGood) continue;
+            if (!point->isGood)
+                continue;
 
             Pnt *parent = ptst + point->parent;
             parent->iR += point->iR * point->lastHessian;
             parent->iRSumNum += point->lastHessian;
         }
 
-        for (int i = 0; i < nptst; i++) {
+        for (int i = 0; i < nptst; i++)
+        {
             Pnt *parent = ptst + i;
-            if (parent->iRSumNum > 0) {
+            if (parent->iRSumNum > 0)
+            {
                 parent->idepth = parent->iR = (parent->iR / parent->iRSumNum);
                 parent->isGood = true;
             }
@@ -495,7 +534,8 @@ namespace ldso {
         optReg(srcLvl + 1);
     }
 
-    void CoarseInitializer::propagateDown(int srcLvl) {
+    void CoarseInitializer::propagateDown(int srcLvl)
+    {
         assert(srcLvl > 0);
         // set idepth of target
 
@@ -503,16 +543,21 @@ namespace ldso {
         Pnt *ptss = points[srcLvl];
         Pnt *ptst = points[srcLvl - 1];
 
-        for (int i = 0; i < nptst; i++) {
+        for (int i = 0; i < nptst; i++)
+        {
             Pnt *point = ptst + i;
             Pnt *parent = ptss + point->parent;
 
-            if (!parent->isGood || parent->lastHessian < 0.1) continue;
-            if (!point->isGood) {
+            if (!parent->isGood || parent->lastHessian < 0.1)
+                continue;
+            if (!point->isGood)
+            {
                 point->iR = point->idepth = point->idepth_new = parent->iR;
                 point->isGood = true;
                 point->lastHessian = 0;
-            } else {
+            }
+            else
+            {
                 float newiR = (point->iR * point->lastHessian * 2 + parent->iR * parent->lastHessian) /
                               (point->lastHessian * 2 + parent->lastHessian);
                 point->iR = point->idepth = point->idepth_new = newiR;
@@ -521,9 +566,10 @@ namespace ldso {
         optReg(srcLvl - 1);
     }
 
-
-    void CoarseInitializer::makeGradients(Eigen::Vector3f **data) {
-        for (int lvl = 1; lvl < pyrLevelsUsed; lvl++) {
+    void CoarseInitializer::makeGradients(Eigen::Vector3f **data)
+    {
+        for (int lvl = 1; lvl < pyrLevelsUsed; lvl++)
+        {
             int lvlm1 = lvl - 1;
             int wl = w[lvl], hl = h[lvl], wlm1 = w[lvlm1];
 
@@ -537,14 +583,16 @@ namespace ldso {
                                                       dINew_lm[2 * x + 2 * y * wlm1 + wlm1][0] +
                                                       dINew_lm[2 * x + 1 + 2 * y * wlm1 + wlm1][0]);
 
-            for (int idx = wl; idx < wl * (hl - 1); idx++) {
+            for (int idx = wl; idx < wl * (hl - 1); idx++)
+            {
                 dINew_l[idx][1] = 0.5f * (dINew_l[idx + 1][0] - dINew_l[idx - 1][0]);
                 dINew_l[idx][2] = 0.5f * (dINew_l[idx + wl][0] - dINew_l[idx - wl][0]);
             }
         }
     }
 
-    void CoarseInitializer::setFirst(shared_ptr<CalibHessian> HCalib, shared_ptr<FrameHessian> newFrameHessian) {
+    void CoarseInitializer::setFirst(shared_ptr<CalibHessian> HCalib, shared_ptr<FrameHessian> newFrameHessian)
+    {
 
         makeK(HCalib);
         firstFrame = newFrameHessian;
@@ -555,16 +603,21 @@ namespace ldso {
         bool *statusMapB = new bool[w[0] * h[0]];
 
         float densities[] = {0.03, 0.05, 0.15, 0.5, 1};
-        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
+        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++)
+        {
             sel.currentPotential = 3;
             int npts;
-            if (lvl == 0) {
+            if (lvl == 0)
+            {
                 npts = sel.makeMaps(firstFrame, statusMap, densities[lvl] * w[0] * h[0], 1, false, 2);
-            } else {
+            }
+            else
+            {
                 npts = makePixelStatus(firstFrame->dIp[lvl], statusMapB, w[lvl], h[lvl], densities[lvl] * w[0] * h[0]);
             }
 
-            if (points[lvl] != 0) delete[] points[lvl];
+            if (points[lvl] != 0)
+                delete[] points[lvl];
             points[lvl] = new Pnt[npts];
 
             // set idepth map to initially 1 everywhere.
@@ -572,9 +625,11 @@ namespace ldso {
             Pnt *pl = points[lvl];
             int nl = 0;
             for (int y = patternPadding + 1; y < hl - patternPadding - 2; y++)
-                for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++) {
-                    if ((lvl != 0 && statusMapB[x + y * wl]) || (lvl == 0 && statusMap[x + y * wl] != 0)) {
-                        //assert(patternNum==9);
+                for (int x = patternPadding + 1; x < wl - patternPadding - 2; x++)
+                {
+                    if ((lvl != 0 && statusMapB[x + y * wl]) || (lvl == 0 && statusMap[x + y * wl] != 0))
+                    {
+                        // assert(patternNum==9);
                         pl[nl].u = x + 0.1;
                         pl[nl].v = y + 0.1;
                         pl[nl].idepth = 1;
@@ -587,7 +642,8 @@ namespace ldso {
 
                         Eigen::Vector3f *cpt = firstFrame->dIp[lvl] + x + y * w[lvl];
                         float sumGrad2 = 0;
-                        for (int idx = 0; idx < patternNum; idx++) {
+                        for (int idx = 0; idx < patternNum; idx++)
+                        {
                             int dx = patternP[idx][0];
                             int dy = patternP[idx][1];
                             float absgrad = cpt[dx + dy * w[lvl]].tail<2>().squaredNorm();
@@ -600,7 +656,6 @@ namespace ldso {
                         assert(nl <= npts);
                     }
                 }
-
 
             numPoints[lvl] = nl;
         }
@@ -615,26 +670,30 @@ namespace ldso {
 
         for (int i = 0; i < pyrLevelsUsed; i++)
             dGrads[i].setZero();
-
     }
 
-    void CoarseInitializer::resetPoints(int lvl) {
+    void CoarseInitializer::resetPoints(int lvl)
+    {
         Pnt *pts = points[lvl];
         int npts = numPoints[lvl];
-        for (int i = 0; i < npts; i++) {
+        for (int i = 0; i < npts; i++)
+        {
             pts[i].energy.setZero();
             pts[i].idepth_new = pts[i].idepth;
 
-
-            if (lvl == pyrLevelsUsed - 1 && !pts[i].isGood) {
+            if (lvl == pyrLevelsUsed - 1 && !pts[i].isGood)
+            {
                 float snd = 0, sn = 0;
-                for (int n = 0; n < 10; n++) {
-                    if (pts[i].neighbours[n] == -1 || !pts[pts[i].neighbours[n]].isGood) continue;
+                for (int n = 0; n < 10; n++)
+                {
+                    if (pts[i].neighbours[n] == -1 || !pts[pts[i].neighbours[n]].isGood)
+                        continue;
                     snd += pts[pts[i].neighbours[n]].iR;
                     sn += 1;
                 }
 
-                if (sn > 0) {
+                if (sn > 0)
+                {
                     pts[i].isGood = true;
                     pts[i].iR = pts[i].idepth = pts[i].idepth_new = snd / sn;
                 }
@@ -642,39 +701,47 @@ namespace ldso {
         }
     }
 
-    void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc) {
+    void CoarseInitializer::doStep(int lvl, float lambda, Vec8f inc)
+    {
 
         const float maxPixelStep = 0.25;
         const float idMaxStep = 1e10;
         Pnt *pts = points[lvl];
         int npts = numPoints[lvl];
-        for (int i = 0; i < npts; i++) {
-            if (!pts[i].isGood) continue;
-
+        for (int i = 0; i < npts; i++)
+        {
+            if (!pts[i].isGood)
+                continue;
 
             float b = JbBuffer[i][8] + JbBuffer[i].head<8>().dot(inc);
             float step = -b * JbBuffer[i][9] / (1 + lambda);
 
-
             float maxstep = maxPixelStep * pts[i].maxstep;
-            if (maxstep > idMaxStep) maxstep = idMaxStep;
+            if (maxstep > idMaxStep)
+                maxstep = idMaxStep;
 
-            if (step > maxstep) step = maxstep;
-            if (step < -maxstep) step = -maxstep;
+            if (step > maxstep)
+                step = maxstep;
+            if (step < -maxstep)
+                step = -maxstep;
 
             float newIdepth = pts[i].idepth + step;
-            if (newIdepth < 1e-3) newIdepth = 1e-3;
-            if (newIdepth > 50) newIdepth = 50;
+            if (newIdepth < 1e-3)
+                newIdepth = 1e-3;
+            if (newIdepth > 50)
+                newIdepth = 50;
             pts[i].idepth_new = newIdepth;
         }
-
     }
 
-    void CoarseInitializer::applyStep(int lvl) {
+    void CoarseInitializer::applyStep(int lvl)
+    {
         Pnt *pts = points[lvl];
         int npts = numPoints[lvl];
-        for (int i = 0; i < npts; i++) {
-            if (!pts[i].isGood) {
+        for (int i = 0; i < npts; i++)
+        {
+            if (!pts[i].isGood)
+            {
                 pts[i].idepth = pts[i].idepth_new = pts[i].iR;
                 continue;
             }
@@ -686,7 +753,8 @@ namespace ldso {
         std::swap<Vec10f *>(JbBuffer, JbBuffer_new);
     }
 
-    void CoarseInitializer::makeK(shared_ptr<CalibHessian> HCalib) {
+    void CoarseInitializer::makeK(shared_ptr<CalibHessian> HCalib)
+    {
         w[0] = wG[0];
         h[0] = hG[0];
 
@@ -695,16 +763,18 @@ namespace ldso {
         cx[0] = HCalib->cxl();
         cy[0] = HCalib->cyl();
 
-        for (int level = 1; level < pyrLevelsUsed; ++level) {
+        for (int level = 1; level < pyrLevelsUsed; ++level)
+        {
             w[level] = w[0] >> level;
             h[level] = h[0] >> level;
             fx[level] = fx[level - 1] * 0.5;
             fy[level] = fy[level - 1] * 0.5;
-            cx[level] = (cx[0] + 0.5) / ((int) 1 << level) - 0.5;
-            cy[level] = (cy[0] + 0.5) / ((int) 1 << level) - 0.5;
+            cx[level] = (cx[0] + 0.5) / ((int)1 << level) - 0.5;
+            cy[level] = (cy[0] + 0.5) / ((int)1 << level) - 0.5;
         }
 
-        for (int level = 0; level < pyrLevelsUsed; ++level) {
+        for (int level = 0; level < pyrLevelsUsed; ++level)
+        {
             K[level] << fx[level], 0.0, cx[level], 0.0, fy[level], cy[level], 0.0, 0.0, 1.0;
             Ki[level] = K[level].inverse();
             fxi[level] = Ki[level](0, 0);
@@ -714,17 +784,20 @@ namespace ldso {
         }
     }
 
-    void CoarseInitializer::makeNN() {
+    void CoarseInitializer::makeNN()
+    {
         const float NNDistFactor = 0.05;
 
         typedef nanoflann::KDTreeSingleIndexAdaptor<
-                nanoflann::L2_Simple_Adaptor<float, FLANNPointcloud>,
-                FLANNPointcloud, 2> KDTree;
+            nanoflann::L2_Simple_Adaptor<float, FLANNPointcloud>,
+            FLANNPointcloud, 2>
+            KDTree;
 
         // build indices
         FLANNPointcloud pcs[PYR_LEVELS];
         KDTree *indexes[PYR_LEVELS];
-        for (int i = 0; i < pyrLevelsUsed; i++) {
+        for (int i = 0; i < pyrLevelsUsed; i++)
+        {
             pcs[i] = FLANNPointcloud(numPoints[i], points[i]);
             indexes[i] = new KDTree(2, pcs[i], nanoflann::KDTreeSingleIndexAdaptorParams(5));
             indexes[i]->buildIndex();
@@ -733,7 +806,8 @@ namespace ldso {
         const int nn = 10;
 
         // find NN & parents
-        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++) {
+        for (int lvl = 0; lvl < pyrLevelsUsed; lvl++)
+        {
             Pnt *pts = points[lvl];
             int npts = numPoints[lvl];
 
@@ -742,14 +816,16 @@ namespace ldso {
             nanoflann::KNNResultSet<float, int, int> resultSet(nn);
             nanoflann::KNNResultSet<float, int, int> resultSet1(1);
 
-            for (int i = 0; i < npts; i++) {
-                //resultSet.init(pts[i].neighbours, pts[i].neighboursDist );
+            for (int i = 0; i < npts; i++)
+            {
+                // resultSet.init(pts[i].neighbours, pts[i].neighboursDist );
                 resultSet.init(ret_index, ret_dist);
                 Vec2f pt = Vec2f(pts[i].u, pts[i].v);
-                indexes[lvl]->findNeighbors(resultSet, (float *) &pt, nanoflann::SearchParams());
+                indexes[lvl]->findNeighbors(resultSet, (float *)&pt, nanoflann::SearchParams());
                 int myidx = 0;
                 float sumDF = 0;
-                for (int k = 0; k < nn; k++) {
+                for (int k = 0; k < nn; k++)
+                {
                     pts[i].neighbours[myidx] = ret_index[k];
                     float df = expf(-ret_dist[k] * NNDistFactor);
                     sumDF += df;
@@ -760,17 +836,19 @@ namespace ldso {
                 for (int k = 0; k < nn; k++)
                     pts[i].neighboursDist[k] *= 10 / sumDF;
 
-
-                if (lvl < pyrLevelsUsed - 1) {
+                if (lvl < pyrLevelsUsed - 1)
+                {
                     resultSet1.init(ret_index, ret_dist);
                     pt = pt * 0.5f - Vec2f(0.25f, 0.25f);
-                    indexes[lvl + 1]->findNeighbors(resultSet1, (float *) &pt, nanoflann::SearchParams());
+                    indexes[lvl + 1]->findNeighbors(resultSet1, (float *)&pt, nanoflann::SearchParams());
 
                     pts[i].parent = ret_index[0];
                     pts[i].parentDist = expf(-ret_dist[0] * NNDistFactor);
 
                     assert(ret_index[0] >= 0 && ret_index[0] < numPoints[lvl + 1]);
-                } else {
+                }
+                else
+                {
                     pts[i].parent = -1;
                     pts[i].parentDist = -1;
                 }

@@ -40,21 +40,24 @@ double rescale = 1;
 bool reversePlay = false;
 bool disableROS = false;
 bool prefetch = false;
-float playbackSpeed = 1;    // 0 for linearize (play as fast as possible, while sequentializing tracking & mapping). otherwise, factor on timestamps.
+float playbackSpeed = 1; // 0 for linearize (play as fast as possible, while sequentializing tracking & mapping). otherwise, factor on timestamps.
 bool preload = false;
 bool useSampleOutput = false;
 
 using namespace ldso;
 
-void settingsDefault(int preset) {
+void settingsDefault(int preset)
+{
     printf("\n=============== PRESET Settings: ===============\n");
-    if (preset == 0 || preset == 1) {
+    if (preset == 0 || preset == 1)
+    {
         printf("DEFAULT settings:\n"
                "- %s real-time enforcing\n"
                "- 2000 active points\n"
                "- 5-7 active frames\n"
                "- 1-6 LM iteration each KF\n"
-               "- original image resolution\n", preset == 0 ? "no " : "1x");
+               "- original image resolution\n",
+               preset == 0 ? "no " : "1x");
 
         playbackSpeed = (preset == 0 ? 0 : 1);
         setting_desiredImmatureDensity = 1500;
@@ -67,7 +70,8 @@ void settingsDefault(int preset) {
         setting_logStuff = false;
     }
 
-    if (preset == 2 || preset == 3) {
+    if (preset == 2 || preset == 3)
+    {
         printf("FAST settings:\n"
                "- %s real-time enforcing\n"
                "- 800 active points\n"
@@ -93,51 +97,59 @@ void settingsDefault(int preset) {
     printf("==============================================\n");
 }
 
-void parseArgument(char *arg) {
+void parseArgument(char *arg)
+{
     int option;
     float foption;
     char buf[1000];
 
-
-    if (1 == sscanf(arg, "sampleoutput=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "sampleoutput=%d", &option))
+    {
+        if (option == 1)
+        {
             useSampleOutput = true;
             printf("USING SAMPLE OUTPUT WRAPPER!\n");
         }
         return;
     }
 
-    if (1 == sscanf(arg, "quiet=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "quiet=%d", &option))
+    {
+        if (option == 1)
+        {
             setting_debugout_runquiet = true;
             printf("QUIET MODE, I'll shut up!\n");
         }
         return;
     }
 
-    if (1 == sscanf(arg, "calib=%s", buf)) {
+    if (1 == sscanf(arg, "calib=%s", buf))
+    {
         calib = buf;
         printf("loading calibration from %s!\n", calib.c_str());
         return;
     }
 
-    if (1 == sscanf(arg, "preset=%d", &option)) {
+    if (1 == sscanf(arg, "preset=%d", &option))
+    {
         settingsDefault(option);
         return;
     }
 
-
-    if (1 == sscanf(arg, "rec=%d", &option)) {
-        if (option == 0) {
+    if (1 == sscanf(arg, "rec=%d", &option))
+    {
+        if (option == 0)
+        {
             disableReconfigure = true;
             printf("DISABLE RECONFIGURE!\n");
         }
         return;
     }
 
-
-    if (1 == sscanf(arg, "noros=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "noros=%d", &option))
+    {
+        if (option == 1)
+        {
             disableROS = true;
             disableReconfigure = true;
             printf("DISABLE ROS (AND RECONFIGURE)!\n");
@@ -145,84 +157,105 @@ void parseArgument(char *arg) {
         return;
     }
 
-    if (1 == sscanf(arg, "loopclosing=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "loopclosing=%d", &option))
+    {
+        if (option == 1)
+        {
             setting_enableLoopClosing = true;
-        } else {
+        }
+        else
+        {
             setting_enableLoopClosing = false;
         }
         printf("Loopclosing %s!\n", setting_enableLoopClosing ? "enabled" : "disabled");
         return;
     }
 
-    if (1 == sscanf(arg, "nolog=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "nolog=%d", &option))
+    {
+        if (option == 1)
+        {
             setting_logStuff = false;
             printf("DISABLE LOGGING!\n");
         }
         return;
     }
 
-    if (1 == sscanf(arg, "reversePlay=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "reversePlay=%d", &option))
+    {
+        if (option == 1)
+        {
             reversePlay = true;
             printf("REVERSE!\n");
         }
         return;
     }
 
-    if (1 == sscanf(arg, "nogui=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "nogui=%d", &option))
+    {
+        if (option == 1)
+        {
             disableAllDisplay = true;
             printf("NO GUI!\n");
         }
         return;
     }
-    if (1 == sscanf(arg, "nomt=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "nomt=%d", &option))
+    {
+        if (option == 1)
+        {
             multiThreading = false;
             printf("NO MultiThreading!\n");
         }
         return;
     }
-    if (1 == sscanf(arg, "prefetch=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "prefetch=%d", &option))
+    {
+        if (option == 1)
+        {
             prefetch = true;
             printf("PREFETCH!\n");
         }
         return;
     }
-    if (1 == sscanf(arg, "start=%d", &option)) {
+    if (1 == sscanf(arg, "start=%d", &option))
+    {
         startIdx = option;
         printf("START AT %d!\n", startIdx);
         return;
     }
-    if (1 == sscanf(arg, "end=%d", &option)) {
+    if (1 == sscanf(arg, "end=%d", &option))
+    {
         endIdx = option;
         printf("END AT %d!\n", endIdx);
         return;
     }
 
-    if (1 == sscanf(arg, "files=%s", buf)) {
+    if (1 == sscanf(arg, "files=%s", buf))
+    {
         source = buf;
         printf("loading data from %s!\n", source.c_str());
         return;
     }
 
-    if (1 == sscanf(arg, "rescale=%f", &foption)) {
+    if (1 == sscanf(arg, "rescale=%f", &foption))
+    {
         rescale = foption;
         printf("RESCALE %f!\n", rescale);
         return;
     }
 
-    if (1 == sscanf(arg, "speed=%f", &foption)) {
+    if (1 == sscanf(arg, "speed=%f", &foption))
+    {
         playbackSpeed = foption;
         printf("PLAYBACK SPEED %f!\n", playbackSpeed);
         return;
     }
 
-    if (1 == sscanf(arg, "save=%d", &option)) {
-        if (option == 1) {
+    if (1 == sscanf(arg, "save=%d", &option))
+    {
+        if (option == 1)
+        {
             debugSaveImages = true;
             if (42 == system("rm -rf images_out"))
                 printf("system call returned 42 - what are the odds?. This is only here to shut up the compiler.\n");
@@ -237,15 +270,18 @@ void parseArgument(char *arg) {
         return;
     }
 
-    if (1 == sscanf(arg, "mode=%d", &option)) {
-        if (option != 1) {
+    if (1 == sscanf(arg, "mode=%d", &option))
+    {
+        if (option != 1)
+        {
             LOG(ERROR) << "EuRoC does not have photometric intrinsics! I will exit!" << endl;
             exit(-1);
         }
         return;
     }
 
-    if (1 == sscanf(arg, "output=%s", buf)) {
+    if (1 == sscanf(arg, "output=%s", buf))
+    {
         output_file = buf;
         LOG(INFO) << "output set to " << output_file << endl;
         return;
@@ -254,15 +290,18 @@ void parseArgument(char *arg) {
     printf("could not parse argument \"%s\"!!!!\n", arg);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
 
     FLAGS_colorlogtostderr = true;
     setting_maxAffineWeight = 0.1;
 
     // check setting conflicts
-    if (setting_enableLoopClosing && (setting_pointSelection != 1)) {
+    if (setting_enableLoopClosing && (setting_pointSelection != 1))
+    {
         LOG(ERROR) << "Loop closing is enabled but point selection strategy is not set to LDSO, "
-                      "use setting_pointSelection=1! please!" << endl;
+                      "use setting_pointSelection=1! please!"
+                   << endl;
         exit(-1);
     }
 
@@ -276,7 +315,7 @@ int main(int argc, char **argv) {
     setting_affineOptModeB = 0; //-1: fix. >=0: optimize (with prior, if > 0).
 
     shared_ptr<ImageFolderReader> reader(
-            new ImageFolderReader(ImageFolderReader::KITTI, source, calib, "", ""));    // no gamma and vignette
+        new ImageFolderReader(ImageFolderReader::KITTI, source, calib, "", "")); // no gamma and vignette
 
     reader->setGlobalCalibration();
 
@@ -284,7 +323,8 @@ int main(int argc, char **argv) {
     int lend = endIdx;
     int linc = 1;
 
-    if (reversePlay) {
+    if (reversePlay)
+    {
         LOG(INFO) << "REVERSE!!!!";
         lstart = endIdx - 1;
         if (lstart >= reader->getNumImages())
@@ -301,22 +341,30 @@ int main(int argc, char **argv) {
     fullSystem->linearizeOperation = (playbackSpeed == 0);
 
     shared_ptr<PangolinDSOViewer> viewer = nullptr;
-    if (!disableAllDisplay) {
+    if (!disableAllDisplay)
+    {
         viewer = shared_ptr<PangolinDSOViewer>(new PangolinDSOViewer(wG[0], hG[0], false));
         fullSystem->setViewer(viewer);
-    } else {
+    }
+    else
+    {
         LOG(INFO) << "visualization is diabled!" << endl;
     }
 
     // to make MacOS happy: run this in dedicated thread -- and use this one to run the GUI.
-    std::thread runthread([&]() {
+    std::thread runthread([&]()
+    {
         std::vector<int> idsToPlay;
         std::vector<double> timesToPlayAt;
-        for (int i = lstart; i >= 0 && i < reader->getNumImages() && linc * i < linc * lend; i += linc) {
+        for (int i = lstart; i >= 0 && i < reader->getNumImages() && linc * i < linc * lend; i += linc) 
+        {
             idsToPlay.push_back(i);
-            if (timesToPlayAt.size() == 0) {
+            if (timesToPlayAt.size() == 0) 
+            {
                 timesToPlayAt.push_back((double) 0);
-            } else {
+            } 
+            else 
+            {
                 double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size() - 1]);
                 double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size() - 2]);
                 timesToPlayAt.push_back(timesToPlayAt.back() + fabs(tsThis - tsPrev) / playbackSpeed);
@@ -325,9 +373,11 @@ int main(int argc, char **argv) {
 
 
         std::vector<ImageAndExposure *> preloadedImages;
-        if (preload) {
+        if (preload) 
+        {
             printf("LOADING ALL IMAGES!\n");
-            for (int ii = 0; ii < (int) idsToPlay.size(); ii++) {
+            for (int ii = 0; ii < (int) idsToPlay.size(); ii++) 
+            {
                 int i = idsToPlay[ii];
                 preloadedImages.push_back(reader->getImage(i));
             }
@@ -339,9 +389,11 @@ int main(int argc, char **argv) {
         double sInitializerOffset = 0;
 
 
-        for (int ii = 0; ii < (int) idsToPlay.size(); ii++) {
+        for (int ii = 0; ii < (int) idsToPlay.size(); ii++) 
+        {
 
-            while (setting_pause == true) {
+            while (setting_pause == true) 
+            {
                 usleep(5000);
             }
             if (!fullSystem->initialized)    // if not initialized: reset start time.
@@ -361,15 +413,19 @@ int main(int argc, char **argv) {
 
 
             bool skipFrame = false;
-            if (playbackSpeed != 0) {
+            if (playbackSpeed != 0) 
+            {
                 struct timeval tv_now;
                 gettimeofday(&tv_now, NULL);
                 double sSinceStart = sInitializerOffset + ((tv_now.tv_sec - tv_start.tv_sec) +
                                                            (tv_now.tv_usec - tv_start.tv_usec) / (1000.0f * 1000.0f));
 
-                if (sSinceStart < timesToPlayAt[ii]) {
+                if (sSinceStart < timesToPlayAt[ii]) 
+                {
                     // usleep((int) ((timesToPlayAt[ii] - sSinceStart) * 1000 * 1000));
-                } else if (sSinceStart > timesToPlayAt[ii] + 0.5 + 0.1 * (ii % 2)) {
+                } 
+                else if (sSinceStart > timesToPlayAt[ii] + 0.5 + 0.1 * (ii % 2)) 
+                {
                     printf("SKIPFRAME %d (play at %f, now it is %f)!\n", ii, timesToPlayAt[ii], sSinceStart);
                     skipFrame = true;
                 }
@@ -377,8 +433,10 @@ int main(int argc, char **argv) {
             if (!skipFrame) fullSystem->addActiveFrame(img, i);
             delete img;
 
-            if (fullSystem->initFailed || setting_fullResetRequested) {
-                if (ii < 250 || setting_fullResetRequested) {
+            if (fullSystem->initFailed || setting_fullResetRequested) 
+            {
+                if (ii < 250 || setting_fullResetRequested) 
+                {
                     LOG(INFO) << "RESETTING!";
                     fullSystem = shared_ptr<FullSystem>(new FullSystem(voc));
                     fullSystem->setGammaFunction(reader->getPhotometricGamma());
@@ -392,7 +450,8 @@ int main(int argc, char **argv) {
                 }
             }
 
-            if (fullSystem->isLost) {
+            if (fullSystem->isLost) 
+            {
                 LOG(INFO) << "Lost!";
                 break;
             }
@@ -426,7 +485,8 @@ int main(int argc, char **argv) {
                MilliSecondsTakenMT / (float) numFramesProcessed,
                1000 / (MilliSecondsTakenSingle / numSecondsProcessed),
                1000 / (MilliSecondsTakenMT / numSecondsProcessed));
-        if (setting_logStuff) {
+        if (setting_logStuff) 
+        {
             std::ofstream tmlog;
             tmlog.open("logs/time.txt", std::ios::trunc | std::ios::out);
             tmlog << 1000.0f * (ended - started) / (float) (CLOCKS_PER_SEC * reader->getNumImages()) << " "
@@ -438,10 +498,9 @@ int main(int argc, char **argv) {
     });
 
     if (viewer)
-        viewer->run();  // mac os should keep this in main thread.
+        viewer->run(); // mac os should keep this in main thread.
 
     runthread.join();
-
 
     LOG(INFO) << "EXIT NOW!";
     return 0;

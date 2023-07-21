@@ -11,17 +11,20 @@
 using namespace ldso;
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
     // the tracker
-    class CoarseTracker {
+    class CoarseTracker
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         // constuctor, allocate memory and compute the camera intrinsics pyramid
         CoarseTracker(int w, int h);
 
-        ~CoarseTracker() {
+        ~CoarseTracker()
+        {
             for (float *ptr : ptrToDelete)
                 delete[] ptr;
             ptrToDelete.clear();
@@ -37,23 +40,23 @@ namespace ldso {
          * @return true if track is good
          */
         bool trackNewestCoarse(
-                shared_ptr<FrameHessian> newFrameHessian,
-                SE3 &lastToNew_out, AffLight &aff_g2l_out,
-                int coarsestLvl, Vec5 minResForAbort);
+            shared_ptr<FrameHessian> newFrameHessian,
+            SE3 &lastToNew_out, AffLight &aff_g2l_out,
+            int coarsestLvl, Vec5 minResForAbort);
 
         void setCoarseTrackingRef(
-                std::vector<shared_ptr<FrameHessian>>& frameHessians);
+            std::vector<shared_ptr<FrameHessian>> &frameHessians);
 
         /**
          * Create camera intrinsics buffer given the calibrated parameters
          * @param HCalib
          */
         void makeK(
-                shared_ptr<CalibHessian> HCalib);
+            shared_ptr<CalibHessian> HCalib);
 
-        shared_ptr<FrameHessian> lastRef = nullptr;     // the reference frame
-        AffLight lastRef_aff_g2l;                       // affine light transform
-        shared_ptr<FrameHessian> newFrame = nullptr;    // the new coming frame
+        shared_ptr<FrameHessian> lastRef = nullptr;  // the reference frame
+        AffLight lastRef_aff_g2l;                    // affine light transform
+        shared_ptr<FrameHessian> newFrame = nullptr; // the new coming frame
         int refFrameID = -1;
 
         // act as pure ouptut
@@ -98,14 +101,13 @@ namespace ldso {
          */
         void calcGSSSE(int lvl, Mat88 &H_out, Vec8 &b_out, const SE3 &refToNew, AffLight aff_g2l);
 
-
         // point cloud buffers
         // wxh in each pyramid layer
-        float *pc_u[PYR_LEVELS];            // u coordinates
-        float *pc_v[PYR_LEVELS];            // v coordinates
-        float *pc_idepth[PYR_LEVELS];       // inv depth in the reference
-        float *pc_color[PYR_LEVELS];        // color of the reference patches
-        int pc_n[PYR_LEVELS];               // number of points in each layer
+        float *pc_u[PYR_LEVELS];      // u coordinates
+        float *pc_v[PYR_LEVELS];      // v coordinates
+        float *pc_idepth[PYR_LEVELS]; // inv depth in the reference
+        float *pc_color[PYR_LEVELS];  // color of the reference patches
+        int pc_n[PYR_LEVELS];         // number of points in each layer
 
         // warped buffer, used as wxh images
         float *buf_warped_idepth;
@@ -122,12 +124,13 @@ namespace ldso {
         float *weightSums[PYR_LEVELS];
         float *weightSums_bak[PYR_LEVELS];
 
-        std::vector<float *> ptrToDelete;    // all allocated memory, will be deleted in deconstructor
+        std::vector<float *> ptrToDelete; // all allocated memory, will be deleted in deconstructor
         Accumulator9 acc;
     };
 
     // the distance map
-    class CoarseDistanceMap {
+    class CoarseDistanceMap
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -136,8 +139,8 @@ namespace ldso {
         ~CoarseDistanceMap();
 
         void makeDistanceMap(
-                std::vector<shared_ptr<FrameHessian>>& frameHessians,
-                shared_ptr<FrameHessian> frame);
+            std::vector<shared_ptr<FrameHessian>> &frameHessians,
+            shared_ptr<FrameHessian> frame);
 
         void makeK(shared_ptr<CalibHessian> HCalib);
 
@@ -159,7 +162,6 @@ namespace ldso {
         void addIntoDistFinal(int u, int v);
 
     private:
-
         PointFrameResidual **coarseProjectionGrid;
         int *coarseProjectionGridNum;
         Eigen::Vector2i *bfsList1;

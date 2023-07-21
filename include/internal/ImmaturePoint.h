@@ -6,16 +6,18 @@
 #include "internal/Residuals.h"
 #include "internal/CalibHessian.h"
 
-namespace ldso {
+namespace ldso
+{
 
-
-    namespace internal {
+    namespace internal
+    {
 
         /**
          * the residual of immature point for solving optimization problems on immature points
          * will be converted into a normal map point residual if the immature point turns out to be a good point
          */
-        struct ImmaturePointTemporaryResidual {
+        struct ImmaturePointTemporaryResidual
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
             ResState state_state;
@@ -28,13 +30,14 @@ namespace ldso {
         /**
          * immature point status
          */
-        enum ImmaturePointStatus {
-            IPS_GOOD = 0,               // traced well and good
-            IPS_OOB,                    // OOB: end tracking & marginalize!
-            IPS_OUTLIER,                // energy too high: if happens again: outlier!
-            IPS_SKIPPED,                // traced well and good (but not actually traced).
-            IPS_BADCONDITION,           // not traced because of bad condition.
-            IPS_UNINITIALIZED           // not even traced once.
+        enum ImmaturePointStatus
+        {
+            IPS_GOOD = 0,     // traced well and good
+            IPS_OOB,          // OOB: end tracking & marginalize!
+            IPS_OUTLIER,      // energy too high: if happens again: outlier!
+            IPS_SKIPPED,      // traced well and good (but not actually traced).
+            IPS_BADCONDITION, // not traced because of bad condition.
+            IPS_UNINITIALIZED // not even traced once.
         };
 
         /**
@@ -42,7 +45,8 @@ namespace ldso {
          * An immature point is a point whose inverse depth has not converged.
          * When a feature is created we will initialize it with an immature point, and then we will try to trace it in other images by searching the epipolar line, and hope it will finally converge. If so, we will create a map point according to this immature point, otherwise we just discard it.
          */
-        class ImmaturePoint {
+        class ImmaturePoint
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -83,23 +87,23 @@ namespace ldso {
              * @return
              */
             double linearizeResidual(
-                    shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
-                    float &Hdd, float &bd,
-                    float idepth);
+                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+                shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+                float &Hdd, float &bd,
+                float idepth);
 
             float getdPixdd(
-                    shared_ptr<CalibHessian> HCalib,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
-                    float idepth);
+                shared_ptr<CalibHessian> HCalib,
+                shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+                float idepth);
 
             float calcResidual(
-                    shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
-                    shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
-                    float idepth);
+                shared_ptr<CalibHessian> HCalib, const float outlierTHSlack,
+                shared_ptr<ImmaturePointTemporaryResidual> tmpRes,
+                float idepth);
 
             // data
-            shared_ptr<Feature> feature = nullptr;    // the feature hosting this immature point
+            shared_ptr<Feature> feature = nullptr; // the feature hosting this immature point
 
             float color[MAX_RES_PER_POINT];
             float weights[MAX_RES_PER_POINT];
@@ -120,7 +124,6 @@ namespace ldso {
             Vec2f lastTraceUV;
             float lastTracePixelInterval;
         };
-
 
     }
 

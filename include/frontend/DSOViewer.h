@@ -18,15 +18,17 @@ using namespace std;
 
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
     //  Visualization for DSO
 
     /**
      * Point cloud struct
      */
-    template<int ppp>
-    struct InputPointSparse {
+    template <int ppp>
+    struct InputPointSparse
+    {
         float u = 0;
         float v = 0;
         float idpeth = 0;
@@ -38,12 +40,14 @@ namespace ldso {
     };
 
     // stores a point cloud associated to a Keyframe.
-    class KeyFrameDisplay {
+    class KeyFrameDisplay
+    {
 
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-        ~KeyFrameDisplay() {
+        ~KeyFrameDisplay()
+        {
             if (originalInputSparse)
                 delete[] originalInputSparse;
         }
@@ -69,16 +73,20 @@ namespace ldso {
         bool active = true;
         Sim3 camToWorld = Sim3();
 
-        inline bool operator<(const KeyFrameDisplay &other) const {
+        inline bool operator<(const KeyFrameDisplay &other) const
+        {
             return (id < other.id);
         }
 
         shared_ptr<Frame> originFrame = nullptr;
 
-        int numPoints() const {
+        int numPoints() const
+        {
             int cnt = 0;
-            for (int i = 0; i < numSparsePoints; ++i) {
-                if (originalInputSparse[i].idpeth > 0) cnt++;
+            for (int i = 0; i < numSparsePoints; ++i)
+            {
+                if (originalInputSparse[i].idpeth > 0)
+                    cnt++;
             }
             return cnt;
         }
@@ -106,13 +114,13 @@ namespace ldso {
         int numGLBufferGoodPoints = 0;
         pangolin::GlBuffer vertexBuffer;
         pangolin::GlBuffer colorBuffer;
-
     };
 
     /**
      * viewer implemented by pangolin
      */
-    class PangolinDSOViewer {
+    class PangolinDSOViewer
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -128,7 +136,8 @@ namespace ldso {
 
         void publishCamPose(shared_ptr<Frame> frame, shared_ptr<CalibHessian> HCalib);
 
-        void setMap(shared_ptr<Map> m) {
+        void setMap(shared_ptr<Map> m)
+        {
             globalMap = m;
         }
 
@@ -140,7 +149,8 @@ namespace ldso {
         /* call on reset */
         void reset();
 
-        void refreshAll() {
+        void refreshAll()
+        {
             unique_lock<mutex> lck(freshMutex);
             LOG(INFO) << "set gui refresh!" << endl;
             freshAll = true;
@@ -149,7 +159,6 @@ namespace ldso {
         void saveAsPLYFile(const string &file_name);
 
     private:
-
         bool needReset = false;
 
         void reset_internal();
@@ -167,12 +176,12 @@ namespace ldso {
 
         // 3D model rendering
         mutex model3DMutex;
-        std::vector<shared_ptr<Frame>> allFramePoses;  // trajectory
+        std::vector<shared_ptr<Frame>> allFramePoses; // trajectory
 
         shared_ptr<KeyFrameDisplay> currentCam = nullptr;
         std::vector<shared_ptr<KeyFrameDisplay>> keyframes; // all keyframes
         std::map<int, shared_ptr<KeyFrameDisplay>> keyframesByKFID;
-        std::vector<size_t> activeKFIDs;    // active keyframes's IDs
+        std::vector<size_t> activeKFIDs; // active keyframes's IDs
 
         // render settings
         bool settings_showKFCameras = true;

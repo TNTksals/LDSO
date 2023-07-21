@@ -4,9 +4,11 @@
 
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
-    void EdgeIDPPrior::computeError() {
+    void EdgeIDPPrior::computeError()
+    {
         const VertexPointInvDepth *vIDP = static_cast<const VertexPointInvDepth *>(_vertices[0]);
         _error(0) = vIDP->estimate() - _measurement;
     }
@@ -21,14 +23,16 @@ namespace ldso {
     /**
      * Erorr = pi(Px)-obs
      */
-    void EdgePRIDP::computeError() {
-        const VertexPointInvDepth *vIDP = dynamic_cast<const VertexPointInvDepth *>( _vertices[0]);
+    void EdgePRIDP::computeError()
+    {
+        const VertexPointInvDepth *vIDP = dynamic_cast<const VertexPointInvDepth *>(_vertices[0]);
         const VertexPR *vPR0 = dynamic_cast<const VertexPR *>(_vertices[1]);
         const VertexPR *vPRi = dynamic_cast<const VertexPR *>(_vertices[2]);
 
         // point inverse depth in reference KF
         double rho = vIDP->estimate();
-        if (rho < 1e-6) {
+        if (rho < 1e-6)
+        {
             // LOG(WARNING) << "Inv depth should not be negative: " << rho << endl;
             return;
         }
@@ -39,7 +43,8 @@ namespace ldso {
         Vec3 Pw = vPR0->estimate().inverse() * P0;
         Vec3 Pi = vPRi->estimate() * Pw;
 
-        if (Pi[2] < 0) {
+        if (Pi[2] < 0)
+        {
             // LOG(WARNING) << "projected depth should not be negative: " << Pi.transpose() << endl;
             return;
         }
@@ -51,12 +56,14 @@ namespace ldso {
         _error = Vec2(u, v) - _measurement;
     }
 
-    void EdgeProjectPoseOnly::computeError() {
-        const VertexPR *vPR = static_cast<VertexPR *> (_vertices[0]);
+    void EdgeProjectPoseOnly::computeError()
+    {
+        const VertexPR *vPR = static_cast<VertexPR *>(_vertices[0]);
         SE3 Tcw = vPR->estimate();
         Vec3 pc = Tcw * pw;
         pc = pc * (1.0 / pc[2]);
-        if (pc[2] < 0) {
+        if (pc[2] < 0)
+        {
             LOG(WARNING) << "invalid depth: " << pc[2] << endl;
             depthValid = false;
             return;
@@ -66,15 +73,17 @@ namespace ldso {
         _error = Vec2(u, v) - _measurement;
     }
 
-    void EdgeProjectPoseOnlySim3::computeError() {
+    void EdgeProjectPoseOnlySim3::computeError()
+    {
 
-        const VertexSim3 *vSim3 = static_cast<VertexSim3 *> (vertex(0));
+        const VertexSim3 *vSim3 = static_cast<VertexSim3 *>(vertex(0));
         Sim3 Scw = vSim3->estimate();
 
         Vec3 pc = Scw.scale() * Scw.rotationMatrix() * pw + Scw.translation();
         pc = pc * (1.0 / pc[2]);
 
-        if (pc[2] < 0) {
+        if (pc[2] < 0)
+        {
             LOG(WARNING) << "invalid depth: " << pc[2] << endl;
             setLevel(1);
             depthValid = false;

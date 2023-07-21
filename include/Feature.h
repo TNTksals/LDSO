@@ -8,12 +8,14 @@ using namespace std;
 
 #include "NumTypes.h"
 
-namespace ldso {
+namespace ldso
+{
 
     struct Frame;
     struct Point;
 
-    namespace internal {
+    namespace internal
+    {
         class ImmaturePoint;
     }
 
@@ -28,18 +30,20 @@ namespace ldso {
      * NOTE outlier features will also be kept in frame know. If you worry about the memory cost you can just clean them
      */
 
-    struct Feature {
+    struct Feature
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         /**
          * Feature status
          */
-        enum FeatureStatus {
-            IMMATURE = 0,    // if immature, the ip will have the immature data
-            VALID,           // have a valid map point (but the point may also be outdated or margined ... )
-            OUTLIER          // the immature point diverges, or the map point becomes an outlier
-        };  // the status of feature
+        enum FeatureStatus
+        {
+            IMMATURE = 0, // if immature, the ip will have the immature data
+            VALID,        // have a valid map point (but the point may also be outdated or margined ... )
+            OUTLIER       // the immature point diverges, or the map point becomes an outlier
+        };                // the status of feature
 
         Feature(float u, float v, shared_ptr<Frame> host) : host(host), uv(Vec2f(u, v)) {}
 
@@ -63,7 +67,8 @@ namespace ldso {
         /**
          * release all internal data
          */
-        inline void ReleaseAll() {
+        inline void ReleaseAll()
+        {
             ReleaseImmature();
             ReleaseMapPoint();
         }
@@ -74,23 +79,23 @@ namespace ldso {
         void load(ifstream &fin, vector<shared_ptr<Frame>> &allKFs);
 
         // =====================================================================================================
-        FeatureStatus status = IMMATURE;   // status of this feature
+        FeatureStatus status = IMMATURE; // status of this feature
 
-        weak_ptr<Frame> host;   // the host frame
+        weak_ptr<Frame> host; // the host frame
 
-        Vec2f uv = Vec2f(0, 0);               // pixel position in image
-        float invD = -1;                  // inverse depth, invalid if < 0, computed by dso's sliding window
-        shared_ptr<Point> point = nullptr;    // corresponding 3D point, nullptr if it is an immature point
+        Vec2f uv = Vec2f(0, 0);            // pixel position in image
+        float invD = -1;                   // inverse depth, invalid if < 0, computed by dso's sliding window
+        shared_ptr<Point> point = nullptr; // corresponding 3D point, nullptr if it is an immature point
 
         // feature stuffs
-        float angle = 0;        // rotation
-        float score = 0;        // shi-tomasi score
-        bool isCorner = false; // indicating if this is a corner
-        int level = 0;         // which pyramid level is the feature computed
-        unsigned char descriptor[32] = {0};  // ORB descriptors
+        float angle = 0;                    // rotation
+        float score = 0;                    // shi-tomasi score
+        bool isCorner = false;              // indicating if this is a corner
+        int level = 0;                      // which pyramid level is the feature computed
+        unsigned char descriptor[32] = {0}; // ORB descriptors
 
         // internal structures for optimizing immature points
-        shared_ptr<internal::ImmaturePoint> ip = nullptr;  // the immature point
+        shared_ptr<internal::ImmaturePoint> ip = nullptr; // the immature point
     };
 }
 

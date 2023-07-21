@@ -8,8 +8,10 @@
 #include "SSE2NEON.h"
 #endif
 
-namespace ldso {
-    namespace internal {
+namespace ldso
+{
+    namespace internal
+    {
 
         /**
          * Matrix accumulators with different sizes
@@ -17,8 +19,9 @@ namespace ldso {
          * @tparam i
          * @tparam j
          */
-        template<int i, int j>
-        class AccumulatorXX {
+        template <int i, int j>
+        class AccumulatorXX
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -27,20 +30,22 @@ namespace ldso {
             Eigen::Matrix<float, i, j> A1m;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 A.setZero();
                 A1k.setZero();
                 A1m.setZero();
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 shiftUp(true);
                 num = numIn1 + numIn1k + numIn1m;
             }
 
-
-            inline void update(const Eigen::Matrix<float, i, 1> &L, const Eigen::Matrix<float, j, 1> &R, float w) {
+            inline void update(const Eigen::Matrix<float, i, 1> &L, const Eigen::Matrix<float, j, 1> &R, float w)
+            {
                 A += w * L * R.transpose();
                 numIn1++;
                 shiftUp(false);
@@ -49,14 +54,17 @@ namespace ldso {
         private:
             float numIn1, numIn1k, numIn1m;
 
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     A1k += A;
                     A.setZero();
                     numIn1k += numIn1;
                     numIn1 = 0;
                 }
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     A1m += A1k;
                     A1k.setZero();
                     numIn1m += numIn1k;
@@ -65,14 +73,16 @@ namespace ldso {
             }
         };
 
-        class Accumulator11 {
+        class Accumulator11
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             float A;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 A = 0;
                 memset(SSEData, 0, sizeof(float) * 4 * 1);
                 memset(SSEData1k, 0, sizeof(float) * 4 * 1);
@@ -80,14 +90,15 @@ namespace ldso {
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 shiftUp(true);
                 A = SSEData1m[0 + 0] + SSEData1m[0 + 1] + SSEData1m[0 + 2] + SSEData1m[0 + 3];
             }
 
-
             inline void updateSingle(
-                    const float val) {
+                const float val)
+            {
                 SSEData[0] += val;
                 num++;
                 numIn1++;
@@ -95,7 +106,8 @@ namespace ldso {
             }
 
             inline void updateSSE(
-                    const __m128 val) {
+                const __m128 val)
+            {
                 _mm_store_ps(SSEData, _mm_add_ps(_mm_load_ps(SSEData), val));
                 num += 4;
                 numIn1++;
@@ -103,19 +115,20 @@ namespace ldso {
             }
 
             inline void updateSingleNoShift(
-                    const float val) {
+                const float val)
+            {
                 SSEData[0] += val;
                 num++;
                 numIn1++;
             }
 
             inline void updateSSENoShift(
-                    const __m128 val) {
+                const __m128 val)
+            {
                 _mm_store_ps(SSEData, _mm_add_ps(_mm_load_ps(SSEData), val));
                 num += 4;
                 numIn1++;
             }
-
 
         private:
             EIGEN_ALIGN16 float SSEData[4 * 1];
@@ -123,16 +136,18 @@ namespace ldso {
             EIGEN_ALIGN16 float SSEData1m[4 * 1];
             float numIn1, numIn1k, numIn1m;
 
-
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     _mm_store_ps(SSEData1k, _mm_add_ps(_mm_load_ps(SSEData), _mm_load_ps(SSEData1k)));
                     numIn1k += numIn1;
                     numIn1 = 0;
                     memset(SSEData, 0, sizeof(float) * 4 * 1);
                 }
 
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     _mm_store_ps(SSEData1m, _mm_add_ps(_mm_load_ps(SSEData1k), _mm_load_ps(SSEData1m)));
                     numIn1m += numIn1k;
                     numIn1k = 0;
@@ -141,9 +156,9 @@ namespace ldso {
             }
         };
 
-
-        template<int i>
-        class AccumulatorX {
+        template <int i>
+        class AccumulatorX
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -152,26 +167,29 @@ namespace ldso {
             Eigen::Matrix<float, i, 1> A1m;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 A.setZero();
                 A1k.setZero();
                 A1m.setZero();
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 shiftUp(true);
                 num = numIn1 + numIn1k + numIn1m;
             }
 
-
-            inline void update(const Eigen::Matrix<float, i, 1> &L, float w) {
+            inline void update(const Eigen::Matrix<float, i, 1> &L, float w)
+            {
                 A += w * L;
                 numIn1++;
                 shiftUp(false);
             }
 
-            inline void updateNoWeight(const Eigen::Matrix<float, i, 1> &L) {
+            inline void updateNoWeight(const Eigen::Matrix<float, i, 1> &L)
+            {
                 A += L;
                 numIn1++;
                 shiftUp(false);
@@ -180,14 +198,17 @@ namespace ldso {
         private:
             float numIn1, numIn1k, numIn1m;
 
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     A1k += A;
                     A.setZero();
                     numIn1k += numIn1;
                     numIn1 = 0;
                 }
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     A1m += A1k;
                     A1k.setZero();
                     numIn1m += numIn1k;
@@ -196,8 +217,8 @@ namespace ldso {
             }
         };
 
-
-        class Accumulator14 {
+        class Accumulator14
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -205,7 +226,8 @@ namespace ldso {
             Vec14f b;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 H.setZero();
                 b.setZero();
                 memset(SSEData, 0, sizeof(float) * 4 * 105);
@@ -214,7 +236,8 @@ namespace ldso {
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 H.setZero();
                 shiftUp(true);
                 assert(numIn1 == 0);
@@ -222,7 +245,8 @@ namespace ldso {
 
                 int idx = 0;
                 for (int r = 0; r < 14; r++)
-                    for (int c = r; c < 14; c++) {
+                    for (int c = r; c < 14; c++)
+                    {
                         float d = SSEData1m[idx + 0] + SSEData1m[idx + 1] + SSEData1m[idx + 2] + SSEData1m[idx + 3];
                         H(r, c) = H(c, r) = d;
                         idx += 4;
@@ -231,15 +255,15 @@ namespace ldso {
                 num = numIn1 + numIn1k + numIn1m;
             }
 
-
             inline void updateSSE(
-                    const __m128 J0, const __m128 J1,
-                    const __m128 J2, const __m128 J3,
-                    const __m128 J4, const __m128 J5,
-                    const __m128 J6, const __m128 J7,
-                    const __m128 J8, const __m128 J9,
-                    const __m128 J10, const __m128 J11,
-                    const __m128 J12, const __m128 J13) {
+                const __m128 J0, const __m128 J1,
+                const __m128 J2, const __m128 J3,
+                const __m128 J4, const __m128 J5,
+                const __m128 J6, const __m128 J7,
+                const __m128 J8, const __m128 J9,
+                const __m128 J10, const __m128 J11,
+                const __m128 J12, const __m128 J13)
+            {
                 float *pt = SSEData;
                 _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt), _mm_mul_ps(J0, J0)));
                 pt += 4;
@@ -470,16 +494,16 @@ namespace ldso {
                 shiftUp(false);
             }
 
-
             inline void updateSingle(
-                    const float J0, const float J1,
-                    const float J2, const float J3,
-                    const float J4, const float J5,
-                    const float J6, const float J7,
-                    const float J8, const float J9,
-                    const float J10, const float J11,
-                    const float J12, const float J13,
-                    int off = 0) {
+                const float J0, const float J1,
+                const float J2, const float J3,
+                const float J4, const float J5,
+                const float J6, const float J7,
+                const float J8, const float J9,
+                const float J10, const float J11,
+                const float J12, const float J13,
+                int off = 0)
+            {
                 float *pt = SSEData + off;
                 *pt += J0 * J0;
                 pt += 4;
@@ -710,16 +734,16 @@ namespace ldso {
                 shiftUp(false);
             }
 
-
         private:
             EIGEN_ALIGN16 float SSEData[4 * 105];
             EIGEN_ALIGN16 float SSEData1k[4 * 105];
             EIGEN_ALIGN16 float SSEData1m[4 * 105];
             float numIn1, numIn1k, numIn1m;
 
-
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     for (int i = 0; i < 105; i++)
                         _mm_store_ps(SSEData1k + 4 * i,
                                      _mm_add_ps(_mm_load_ps(SSEData + 4 * i), _mm_load_ps(SSEData1k + 4 * i)));
@@ -728,7 +752,8 @@ namespace ldso {
                     memset(SSEData, 0, sizeof(float) * 4 * 105);
                 }
 
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     for (int i = 0; i < 105; i++)
                         _mm_store_ps(SSEData1m + 4 * i,
                                      _mm_add_ps(_mm_load_ps(SSEData1k + 4 * i), _mm_load_ps(SSEData1m + 4 * i)));
@@ -739,21 +764,22 @@ namespace ldso {
             }
         };
 
-
         /*
          * computes the outer sum of 10x2 matrices, weighted with a 2x2 matrix:
          * 			H = [x y] * [a b; b c] * [x y]^T
          * (assuming x,y are column-vectors).
          * numerically robust to large sums.
          */
-        class AccumulatorApprox {
+        class AccumulatorApprox
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             Mat1313f H;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 memset(Data, 0, sizeof(float) * 60);
                 memset(Data1k, 0, sizeof(float) * 60);
                 memset(Data1m, 0, sizeof(float) * 60);
@@ -768,7 +794,8 @@ namespace ldso {
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 H.setZero();
                 shiftUp(true);
                 assert(numIn1 == 0);
@@ -776,14 +803,16 @@ namespace ldso {
 
                 int idx = 0;
                 for (int r = 0; r < 10; r++)
-                    for (int c = r; c < 10; c++) {
+                    for (int c = r; c < 10; c++)
+                    {
                         H(r, c) = H(c, r) = Data1m[idx];
                         idx++;
                     }
 
                 idx = 0;
                 for (int r = 0; r < 10; r++)
-                    for (int c = 0; c < 3; c++) {
+                    for (int c = 0; c < 3; c++)
+                    {
                         H(r, c + 10) = H(c + 10, r) = TopRight_Data1m[idx];
                         idx++;
                     }
@@ -795,17 +824,16 @@ namespace ldso {
                 H(11, 12) = H(12, 11) = BotRight_Data1m[4];
                 H(12, 12) = BotRight_Data1m[5];
 
-
                 num = numIn1 + numIn1k + numIn1m;
             }
 
-
             inline void updateSSE(
-                    const float *const x,
-                    const float *const y,
-                    const float a,
-                    const float b,
-                    const float c) {
+                const float *const x,
+                const float *const y,
+                const float a,
+                const float b,
+                const float c)
+            {
 
                 Data[0] += a * x[0] * x[0] + c * y[0] * y[0] + b * (x[0] * y[0] + y[0] * x[0]);
                 Data[1] += a * x[1] * x[0] + c * y[1] * y[0] + b * (x[1] * y[0] + y[1] * x[0]);
@@ -818,7 +846,6 @@ namespace ldso {
                 Data[8] += a * x[8] * x[0] + c * y[8] * y[0] + b * (x[8] * y[0] + y[8] * x[0]);
                 Data[9] += a * x[9] * x[0] + c * y[9] * y[0] + b * (x[9] * y[0] + y[9] * x[0]);
 
-
                 Data[10] += a * x[1] * x[1] + c * y[1] * y[1] + b * (x[1] * y[1] + y[1] * x[1]);
                 Data[11] += a * x[2] * x[1] + c * y[2] * y[1] + b * (x[2] * y[1] + y[2] * x[1]);
                 Data[12] += a * x[3] * x[1] + c * y[3] * y[1] + b * (x[3] * y[1] + y[3] * x[1]);
@@ -829,7 +856,6 @@ namespace ldso {
                 Data[17] += a * x[8] * x[1] + c * y[8] * y[1] + b * (x[8] * y[1] + y[8] * x[1]);
                 Data[18] += a * x[9] * x[1] + c * y[9] * y[1] + b * (x[9] * y[1] + y[9] * x[1]);
 
-
                 Data[19] += a * x[2] * x[2] + c * y[2] * y[2] + b * (x[2] * y[2] + y[2] * x[2]);
                 Data[20] += a * x[3] * x[2] + c * y[3] * y[2] + b * (x[3] * y[2] + y[3] * x[2]);
                 Data[21] += a * x[4] * x[2] + c * y[4] * y[2] + b * (x[4] * y[2] + y[4] * x[2]);
@@ -839,7 +865,6 @@ namespace ldso {
                 Data[25] += a * x[8] * x[2] + c * y[8] * y[2] + b * (x[8] * y[2] + y[8] * x[2]);
                 Data[26] += a * x[9] * x[2] + c * y[9] * y[2] + b * (x[9] * y[2] + y[9] * x[2]);
 
-
                 Data[27] += a * x[3] * x[3] + c * y[3] * y[3] + b * (x[3] * y[3] + y[3] * x[3]);
                 Data[28] += a * x[4] * x[3] + c * y[4] * y[3] + b * (x[4] * y[3] + y[4] * x[3]);
                 Data[29] += a * x[5] * x[3] + c * y[5] * y[3] + b * (x[5] * y[3] + y[5] * x[3]);
@@ -848,7 +873,6 @@ namespace ldso {
                 Data[32] += a * x[8] * x[3] + c * y[8] * y[3] + b * (x[8] * y[3] + y[8] * x[3]);
                 Data[33] += a * x[9] * x[3] + c * y[9] * y[3] + b * (x[9] * y[3] + y[9] * x[3]);
 
-
                 Data[34] += a * x[4] * x[4] + c * y[4] * y[4] + b * (x[4] * y[4] + y[4] * x[4]);
                 Data[35] += a * x[5] * x[4] + c * y[5] * y[4] + b * (x[5] * y[4] + y[5] * x[4]);
                 Data[36] += a * x[6] * x[4] + c * y[6] * y[4] + b * (x[6] * y[4] + y[6] * x[4]);
@@ -856,48 +880,43 @@ namespace ldso {
                 Data[38] += a * x[8] * x[4] + c * y[8] * y[4] + b * (x[8] * y[4] + y[8] * x[4]);
                 Data[39] += a * x[9] * x[4] + c * y[9] * y[4] + b * (x[9] * y[4] + y[9] * x[4]);
 
-
                 Data[40] += a * x[5] * x[5] + c * y[5] * y[5] + b * (x[5] * y[5] + y[5] * x[5]);
                 Data[41] += a * x[6] * x[5] + c * y[6] * y[5] + b * (x[6] * y[5] + y[6] * x[5]);
                 Data[42] += a * x[7] * x[5] + c * y[7] * y[5] + b * (x[7] * y[5] + y[7] * x[5]);
                 Data[43] += a * x[8] * x[5] + c * y[8] * y[5] + b * (x[8] * y[5] + y[8] * x[5]);
                 Data[44] += a * x[9] * x[5] + c * y[9] * y[5] + b * (x[9] * y[5] + y[9] * x[5]);
 
-
                 Data[45] += a * x[6] * x[6] + c * y[6] * y[6] + b * (x[6] * y[6] + y[6] * x[6]);
                 Data[46] += a * x[7] * x[6] + c * y[7] * y[6] + b * (x[7] * y[6] + y[7] * x[6]);
                 Data[47] += a * x[8] * x[6] + c * y[8] * y[6] + b * (x[8] * y[6] + y[8] * x[6]);
                 Data[48] += a * x[9] * x[6] + c * y[9] * y[6] + b * (x[9] * y[6] + y[9] * x[6]);
 
-
                 Data[49] += a * x[7] * x[7] + c * y[7] * y[7] + b * (x[7] * y[7] + y[7] * x[7]);
                 Data[50] += a * x[8] * x[7] + c * y[8] * y[7] + b * (x[8] * y[7] + y[8] * x[7]);
                 Data[51] += a * x[9] * x[7] + c * y[9] * y[7] + b * (x[9] * y[7] + y[9] * x[7]);
-
 
                 Data[52] += a * x[8] * x[8] + c * y[8] * y[8] + b * (x[8] * y[8] + y[8] * x[8]);
                 Data[53] += a * x[9] * x[8] + c * y[9] * y[8] + b * (x[9] * y[8] + y[9] * x[8]);
 
                 Data[54] += a * x[9] * x[9] + c * y[9] * y[9] + b * (x[9] * y[9] + y[9] * x[9]);
 
-
                 num++;
                 numIn1++;
                 shiftUp(false);
             }
 
-
             /*
              * same as other method, just that x/y are composed of two parts, the first 4 elements are in x4/y4, the last 6 in x6/y6.
              */
             inline void update(
-                    const float *const x4,
-                    const float *const x6,
-                    const float *const y4,
-                    const float *const y6,
-                    const float a,
-                    const float b,
-                    const float c) {
+                const float *const x4,
+                const float *const x6,
+                const float *const y4,
+                const float *const y6,
+                const float a,
+                const float b,
+                const float c)
+            {
 
                 Data[0] += a * x4[0] * x4[0] + c * y4[0] * y4[0] + b * (x4[0] * y4[0] + y4[0] * x4[0]);
                 Data[1] += a * x4[1] * x4[0] + c * y4[1] * y4[0] + b * (x4[1] * y4[0] + y4[1] * x4[0]);
@@ -910,7 +929,6 @@ namespace ldso {
                 Data[8] += a * x6[4] * x4[0] + c * y6[4] * y4[0] + b * (x6[4] * y4[0] + y6[4] * x4[0]);
                 Data[9] += a * x6[5] * x4[0] + c * y6[5] * y4[0] + b * (x6[5] * y4[0] + y6[5] * x4[0]);
 
-
                 Data[10] += a * x4[1] * x4[1] + c * y4[1] * y4[1] + b * (x4[1] * y4[1] + y4[1] * x4[1]);
                 Data[11] += a * x4[2] * x4[1] + c * y4[2] * y4[1] + b * (x4[2] * y4[1] + y4[2] * x4[1]);
                 Data[12] += a * x4[3] * x4[1] + c * y4[3] * y4[1] + b * (x4[3] * y4[1] + y4[3] * x4[1]);
@@ -921,7 +939,6 @@ namespace ldso {
                 Data[17] += a * x6[4] * x4[1] + c * y6[4] * y4[1] + b * (x6[4] * y4[1] + y6[4] * x4[1]);
                 Data[18] += a * x6[5] * x4[1] + c * y6[5] * y4[1] + b * (x6[5] * y4[1] + y6[5] * x4[1]);
 
-
                 Data[19] += a * x4[2] * x4[2] + c * y4[2] * y4[2] + b * (x4[2] * y4[2] + y4[2] * x4[2]);
                 Data[20] += a * x4[3] * x4[2] + c * y4[3] * y4[2] + b * (x4[3] * y4[2] + y4[3] * x4[2]);
                 Data[21] += a * x6[0] * x4[2] + c * y6[0] * y4[2] + b * (x6[0] * y4[2] + y6[0] * x4[2]);
@@ -931,7 +948,6 @@ namespace ldso {
                 Data[25] += a * x6[4] * x4[2] + c * y6[4] * y4[2] + b * (x6[4] * y4[2] + y6[4] * x4[2]);
                 Data[26] += a * x6[5] * x4[2] + c * y6[5] * y4[2] + b * (x6[5] * y4[2] + y6[5] * x4[2]);
 
-
                 Data[27] += a * x4[3] * x4[3] + c * y4[3] * y4[3] + b * (x4[3] * y4[3] + y4[3] * x4[3]);
                 Data[28] += a * x6[0] * x4[3] + c * y6[0] * y4[3] + b * (x6[0] * y4[3] + y6[0] * x4[3]);
                 Data[29] += a * x6[1] * x4[3] + c * y6[1] * y4[3] + b * (x6[1] * y4[3] + y6[1] * x4[3]);
@@ -940,7 +956,6 @@ namespace ldso {
                 Data[32] += a * x6[4] * x4[3] + c * y6[4] * y4[3] + b * (x6[4] * y4[3] + y6[4] * x4[3]);
                 Data[33] += a * x6[5] * x4[3] + c * y6[5] * y4[3] + b * (x6[5] * y4[3] + y6[5] * x4[3]);
 
-
                 Data[34] += a * x6[0] * x6[0] + c * y6[0] * y6[0] + b * (x6[0] * y6[0] + y6[0] * x6[0]);
                 Data[35] += a * x6[1] * x6[0] + c * y6[1] * y6[0] + b * (x6[1] * y6[0] + y6[1] * x6[0]);
                 Data[36] += a * x6[2] * x6[0] + c * y6[2] * y6[0] + b * (x6[2] * y6[0] + y6[2] * x6[0]);
@@ -948,45 +963,40 @@ namespace ldso {
                 Data[38] += a * x6[4] * x6[0] + c * y6[4] * y6[0] + b * (x6[4] * y6[0] + y6[4] * x6[0]);
                 Data[39] += a * x6[5] * x6[0] + c * y6[5] * y6[0] + b * (x6[5] * y6[0] + y6[5] * x6[0]);
 
-
                 Data[40] += a * x6[1] * x6[1] + c * y6[1] * y6[1] + b * (x6[1] * y6[1] + y6[1] * x6[1]);
                 Data[41] += a * x6[2] * x6[1] + c * y6[2] * y6[1] + b * (x6[2] * y6[1] + y6[2] * x6[1]);
                 Data[42] += a * x6[3] * x6[1] + c * y6[3] * y6[1] + b * (x6[3] * y6[1] + y6[3] * x6[1]);
                 Data[43] += a * x6[4] * x6[1] + c * y6[4] * y6[1] + b * (x6[4] * y6[1] + y6[4] * x6[1]);
                 Data[44] += a * x6[5] * x6[1] + c * y6[5] * y6[1] + b * (x6[5] * y6[1] + y6[5] * x6[1]);
 
-
                 Data[45] += a * x6[2] * x6[2] + c * y6[2] * y6[2] + b * (x6[2] * y6[2] + y6[2] * x6[2]);
                 Data[46] += a * x6[3] * x6[2] + c * y6[3] * y6[2] + b * (x6[3] * y6[2] + y6[3] * x6[2]);
                 Data[47] += a * x6[4] * x6[2] + c * y6[4] * y6[2] + b * (x6[4] * y6[2] + y6[4] * x6[2]);
                 Data[48] += a * x6[5] * x6[2] + c * y6[5] * y6[2] + b * (x6[5] * y6[2] + y6[5] * x6[2]);
 
-
                 Data[49] += a * x6[3] * x6[3] + c * y6[3] * y6[3] + b * (x6[3] * y6[3] + y6[3] * x6[3]);
                 Data[50] += a * x6[4] * x6[3] + c * y6[4] * y6[3] + b * (x6[4] * y6[3] + y6[4] * x6[3]);
                 Data[51] += a * x6[5] * x6[3] + c * y6[5] * y6[3] + b * (x6[5] * y6[3] + y6[5] * x6[3]);
-
 
                 Data[52] += a * x6[4] * x6[4] + c * y6[4] * y6[4] + b * (x6[4] * y6[4] + y6[4] * x6[4]);
                 Data[53] += a * x6[5] * x6[4] + c * y6[5] * y6[4] + b * (x6[5] * y6[4] + y6[5] * x6[4]);
 
                 Data[54] += a * x6[5] * x6[5] + c * y6[5] * y6[5] + b * (x6[5] * y6[5] + y6[5] * x6[5]);
 
-
                 num++;
                 numIn1++;
                 shiftUp(false);
             }
 
-
             inline void updateTopRight(
-                    const float *const x4,
-                    const float *const x6,
-                    const float *const y4,
-                    const float *const y6,
-                    const float TR00, const float TR10,
-                    const float TR01, const float TR11,
-                    const float TR02, const float TR12) {
+                const float *const x4,
+                const float *const x6,
+                const float *const y4,
+                const float *const y6,
+                const float TR00, const float TR10,
+                const float TR01, const float TR11,
+                const float TR02, const float TR12)
+            {
                 TopRight_Data[0] += x4[0] * TR00 + y4[0] * TR10;
                 TopRight_Data[1] += x4[0] * TR01 + y4[0] * TR11;
                 TopRight_Data[2] += x4[0] * TR02 + y4[0] * TR12;
@@ -1026,16 +1036,16 @@ namespace ldso {
                 TopRight_Data[27] += x6[5] * TR00 + y6[5] * TR10;
                 TopRight_Data[28] += x6[5] * TR01 + y6[5] * TR11;
                 TopRight_Data[29] += x6[5] * TR02 + y6[5] * TR12;
-
             }
 
             inline void updateBotRight(
-                    const float a00,
-                    const float a01,
-                    const float a02,
-                    const float a11,
-                    const float a12,
-                    const float a22) {
+                const float a00,
+                const float a01,
+                const float a02,
+                const float a11,
+                const float a12,
+                const float a22)
+            {
                 BotRight_Data[0] += a00;
                 BotRight_Data[1] += a01;
                 BotRight_Data[2] += a02;
@@ -1043,7 +1053,6 @@ namespace ldso {
                 BotRight_Data[4] += a12;
                 BotRight_Data[5] += a22;
             }
-
 
         private:
             EIGEN_ALIGN16 float Data[60];
@@ -1058,12 +1067,12 @@ namespace ldso {
             EIGEN_ALIGN16 float BotRight_Data1k[8];
             EIGEN_ALIGN16 float BotRight_Data1m[8];
 
-
             float numIn1, numIn1k, numIn1m;
 
-
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     for (int i = 0; i < 60; i += 4)
                         _mm_store_ps(Data1k + i, _mm_add_ps(_mm_load_ps(Data + i), _mm_load_ps(Data1k + i)));
                     for (int i = 0; i < 32; i += 4)
@@ -1073,7 +1082,6 @@ namespace ldso {
                         _mm_store_ps(BotRight_Data1k + i,
                                      _mm_add_ps(_mm_load_ps(BotRight_Data + i), _mm_load_ps(BotRight_Data1k + i)));
 
-
                     numIn1k += numIn1;
                     numIn1 = 0;
                     memset(Data, 0, sizeof(float) * 60);
@@ -1081,7 +1089,8 @@ namespace ldso {
                     memset(BotRight_Data, 0, sizeof(float) * 8);
                 }
 
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     for (int i = 0; i < 60; i += 4)
                         _mm_store_ps(Data1m + i, _mm_add_ps(_mm_load_ps(Data1k + i), _mm_load_ps(Data1m + i)));
                     for (int i = 0; i < 32; i += 4)
@@ -1100,8 +1109,8 @@ namespace ldso {
             }
         };
 
-
-        class Accumulator9 {
+        class Accumulator9
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -1109,7 +1118,8 @@ namespace ldso {
             Vec9f b;
             size_t num;
 
-            inline void initialize() {
+            inline void initialize()
+            {
                 H.setZero();
                 b.setZero();
                 memset(SSEData, 0, sizeof(float) * 4 * 45);
@@ -1118,7 +1128,8 @@ namespace ldso {
                 num = numIn1 = numIn1k = numIn1m = 0;
             }
 
-            inline void finish() {
+            inline void finish()
+            {
                 H.setZero();
                 shiftUp(true);
                 assert(numIn1 == 0);
@@ -1126,7 +1137,8 @@ namespace ldso {
 
                 int idx = 0;
                 for (int r = 0; r < 9; r++)
-                    for (int c = r; c < 9; c++) {
+                    for (int c = r; c < 9; c++)
+                    {
                         float d = SSEData1m[idx + 0] + SSEData1m[idx + 1] + SSEData1m[idx + 2] + SSEData1m[idx + 3];
                         H(r, c) = H(c, r) = d;
                         idx += 4;
@@ -1134,13 +1146,13 @@ namespace ldso {
                 assert(idx == 4 * 45);
             }
 
-
             inline void updateSSE(
-                    const __m128 J0, const __m128 J1,
-                    const __m128 J2, const __m128 J3,
-                    const __m128 J4, const __m128 J5,
-                    const __m128 J6, const __m128 J7,
-                    const __m128 J8) {
+                const __m128 J0, const __m128 J1,
+                const __m128 J2, const __m128 J3,
+                const __m128 J4, const __m128 J5,
+                const __m128 J6, const __m128 J7,
+                const __m128 J8)
+            {
                 float *pt = SSEData;
                 _mm_store_ps(pt, _mm_add_ps(_mm_load_ps(pt), _mm_mul_ps(J0, J0)));
                 pt += 4;
@@ -1246,13 +1258,13 @@ namespace ldso {
                 shiftUp(false);
             }
 
-
             inline void updateSSE_eighted(
-                    const __m128 J0, const __m128 J1,
-                    const __m128 J2, const __m128 J3,
-                    const __m128 J4, const __m128 J5,
-                    const __m128 J6, const __m128 J7,
-                    const __m128 J8, const __m128 w) {
+                const __m128 J0, const __m128 J1,
+                const __m128 J2, const __m128 J3,
+                const __m128 J4, const __m128 J5,
+                const __m128 J6, const __m128 J7,
+                const __m128 J8, const __m128 w)
+            {
                 float *pt = SSEData;
 
                 __m128 J0w = _mm_mul_ps(J0, w);
@@ -1368,13 +1380,13 @@ namespace ldso {
                 shiftUp(false);
             }
 
-
             inline void updateSingle(
-                    const float J0, const float J1,
-                    const float J2, const float J3,
-                    const float J4, const float J5,
-                    const float J6, const float J7,
-                    const float J8, int off = 0) {
+                const float J0, const float J1,
+                const float J2, const float J3,
+                const float J4, const float J5,
+                const float J6, const float J7,
+                const float J8, int off = 0)
+            {
                 float *pt = SSEData + off;
                 *pt += J0 * J0;
                 pt += 4;
@@ -1395,7 +1407,6 @@ namespace ldso {
                 *pt += J8 * J0;
                 pt += 4;
 
-
                 *pt += J1 * J1;
                 pt += 4;
                 *pt += J2 * J1;
@@ -1413,7 +1424,6 @@ namespace ldso {
                 *pt += J8 * J1;
                 pt += 4;
 
-
                 *pt += J2 * J2;
                 pt += 4;
                 *pt += J3 * J2;
@@ -1429,7 +1439,6 @@ namespace ldso {
                 *pt += J8 * J2;
                 pt += 4;
 
-
                 *pt += J3 * J3;
                 pt += 4;
                 *pt += J4 * J3;
@@ -1442,7 +1451,6 @@ namespace ldso {
                 pt += 4;
                 *pt += J8 * J3;
                 pt += 4;
-
 
                 *pt += J4 * J4;
                 pt += 4;
@@ -1464,14 +1472,12 @@ namespace ldso {
                 *pt += J8 * J5;
                 pt += 4;
 
-
                 *pt += J6 * J6;
                 pt += 4;
                 *pt += J7 * J6;
                 pt += 4;
                 *pt += J8 * J6;
                 pt += 4;
-
 
                 *pt += J7 * J7;
                 pt += 4;
@@ -1487,12 +1493,13 @@ namespace ldso {
             }
 
             inline void updateSingleWeighted(
-                    float J0, float J1,
-                    float J2, float J3,
-                    float J4, float J5,
-                    float J6, float J7,
-                    float J8, float w,
-                    int off = 0) {
+                float J0, float J1,
+                float J2, float J3,
+                float J4, float J5,
+                float J6, float J7,
+                float J8, float w,
+                int off = 0)
+            {
 
                 float *pt = SSEData + off;
                 *pt += J0 * J0 * w;
@@ -1515,7 +1522,6 @@ namespace ldso {
                 *pt += J8 * J0;
                 pt += 4;
 
-
                 *pt += J1 * J1 * w;
                 pt += 4;
                 J1 *= w;
@@ -1534,7 +1540,6 @@ namespace ldso {
                 *pt += J8 * J1;
                 pt += 4;
 
-
                 *pt += J2 * J2 * w;
                 pt += 4;
                 J2 *= w;
@@ -1551,7 +1556,6 @@ namespace ldso {
                 *pt += J8 * J2;
                 pt += 4;
 
-
                 *pt += J3 * J3 * w;
                 pt += 4;
                 J3 *= w;
@@ -1565,7 +1569,6 @@ namespace ldso {
                 pt += 4;
                 *pt += J8 * J3;
                 pt += 4;
-
 
                 *pt += J4 * J4 * w;
                 pt += 4;
@@ -1589,7 +1592,6 @@ namespace ldso {
                 *pt += J8 * J5;
                 pt += 4;
 
-
                 *pt += J6 * J6 * w;
                 pt += 4;
                 J6 *= w;
@@ -1597,7 +1599,6 @@ namespace ldso {
                 pt += 4;
                 *pt += J8 * J6;
                 pt += 4;
-
 
                 *pt += J7 * J7 * w;
                 pt += 4;
@@ -1613,16 +1614,16 @@ namespace ldso {
                 shiftUp(false);
             }
 
-
         private:
             EIGEN_ALIGN16 float SSEData[4 * 45];
             EIGEN_ALIGN16 float SSEData1k[4 * 45];
             EIGEN_ALIGN16 float SSEData1m[4 * 45];
             float numIn1, numIn1k, numIn1m;
 
-
-            void shiftUp(bool force) {
-                if (numIn1 > 1000 || force) {
+            void shiftUp(bool force)
+            {
+                if (numIn1 > 1000 || force)
+                {
                     for (int i = 0; i < 45; i++)
                         _mm_store_ps(SSEData1k + 4 * i,
                                      _mm_add_ps(_mm_load_ps(SSEData + 4 * i), _mm_load_ps(SSEData1k + 4 * i)));
@@ -1631,7 +1632,8 @@ namespace ldso {
                     memset(SSEData, 0, sizeof(float) * 4 * 45);
                 }
 
-                if (numIn1k > 1000 || force) {
+                if (numIn1k > 1000 || force)
+                {
                     for (int i = 0; i < 45; i++)
                         _mm_store_ps(SSEData1m + 4 * i,
                                      _mm_add_ps(_mm_load_ps(SSEData1k + 4 * i), _mm_load_ps(SSEData1m + 4 * i)));
@@ -1641,7 +1643,6 @@ namespace ldso {
                 }
             }
         };
-
 
     }
 }

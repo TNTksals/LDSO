@@ -7,8 +7,10 @@
 #include "internal/Residuals.h"
 #include "Feature.h"
 
-namespace ldso {
-    namespace internal {
+namespace ldso
+{
+    namespace internal
+    {
         class PointFrameResidual;
 
         class ImmaturePoint;
@@ -16,7 +18,8 @@ namespace ldso {
         /**
          * Point hessian is the internal structure of a map point
          */
-        class PointHessian {
+        class PointHessian
+        {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -25,62 +28,71 @@ namespace ldso {
 
             PointHessian() {}
 
-            inline void setIdepth(float idepth) {
+            inline void setIdepth(float idepth)
+            {
                 this->idepth = idepth;
                 this->idepth_scaled = SCALE_IDEPTH * idepth;
-                if (point->mHostFeature.expired()) {
+                if (point->mHostFeature.expired())
+                {
                     LOG(FATAL) << "host feature expired!" << endl;
                 }
                 point->mHostFeature.lock()->invD = idepth;
             }
 
-            inline void setIdepthScaled(float idepth_scaled) {
+            inline void setIdepthScaled(float idepth_scaled)
+            {
                 this->idepth = SCALE_IDEPTH_INVERSE * idepth_scaled;
                 this->idepth_scaled = idepth_scaled;
-                if (point->mHostFeature.expired()) {
+                if (point->mHostFeature.expired())
+                {
                     LOG(FATAL) << "host feature expired!" << endl;
                 }
                 point->mHostFeature.lock()->invD = idepth;
             }
 
-            inline void setIdepthZero(float idepth) {
+            inline void setIdepthZero(float idepth)
+            {
                 idepth_zero = idepth;
                 idepth_zero_scaled = SCALE_IDEPTH * idepth;
                 nullspaces_scale = -(idepth * 1.001 - idepth / 1.001) * 500;
             }
 
             // judge if this point is out of boundary
-            inline bool isOOB(std::vector<shared_ptr<FrameHessian>> &toMarg) {
+            inline bool isOOB(std::vector<shared_ptr<FrameHessian>> &toMarg)
+            {
 
                 int visInToMarg = 0;
-                for (shared_ptr<PointFrameResidual> &r : residuals) {
-                    if (r->state_state != ResState::IN) continue;
+                for (shared_ptr<PointFrameResidual> &r : residuals)
+                {
+                    if (r->state_state != ResState::IN)
+                        continue;
                     for (shared_ptr<FrameHessian> k : toMarg)
-                        if (r->target.lock() == k) visInToMarg++;
+                        if (r->target.lock() == k)
+                            visInToMarg++;
                 }
 
-                if ((int) residuals.size() >= setting_minGoodActiveResForMarg &&
+                if ((int)residuals.size() >= setting_minGoodActiveResForMarg &&
                     numGoodResiduals > setting_minGoodResForMarg + 10 &&
-                    (int) residuals.size() - visInToMarg < setting_minGoodActiveResForMarg)
+                    (int)residuals.size() - visInToMarg < setting_minGoodActiveResForMarg)
                     return true;
 
                 if (lastResiduals[0].second == ResState::OOB)
                     return true;
-                if (residuals.size() < 2) return false;
+                if (residuals.size() < 2)
+                    return false;
                 if (lastResiduals[0].second == ResState::OUTLIER && lastResiduals[1].second == ResState::OUTLIER)
                     return true;
                 return false;
             }
 
-            inline bool isInlierNew() {
-                return (int) residuals.size() >= setting_minGoodActiveResForMarg
-                       && numGoodResiduals >= setting_minGoodResForMarg;
+            inline bool isInlierNew()
+            {
+                return (int)residuals.size() >= setting_minGoodActiveResForMarg && numGoodResiduals >= setting_minGoodResForMarg;
             }
-
 
             shared_ptr<Point> point = nullptr;
 
-            float u = 0, v = 0;              // pixel position
+            float u = 0, v = 0; // pixel position
             float energyTH = 0;
             bool hasDepthPrior = false;
             float my_type = 0;
@@ -97,19 +109,20 @@ namespace ldso {
             int numGoodResiduals = 0;
 
             // residuals in many keyframes
-            std::vector<shared_ptr<PointFrameResidual>> residuals;   // only contains good residuals (not OOB and not OUTLIER). Arbitrary order.
+            std::vector<shared_ptr<PointFrameResidual>> residuals; // only contains good residuals (not OOB and not OUTLIER). Arbitrary order.
 
             // the last two residuals
-            std::pair<shared_ptr<PointFrameResidual>, ResState> lastResiduals[2];  // contains information about residuals to the last two (!) frames. ([0] = latest, [1] = the one before).
+            std::pair<shared_ptr<PointFrameResidual>, ResState> lastResiduals[2]; // contains information about residuals to the last two (!) frames. ([0] = latest, [1] = the one before).
 
             // static values
-            float color[MAX_RES_PER_POINT];         // colors in host frame
-            float weights[MAX_RES_PER_POINT];       // host-weights for respective residuals.
+            float color[MAX_RES_PER_POINT];   // colors in host frame
+            float weights[MAX_RES_PER_POINT]; // host-weights for respective residuals.
 
             // ======================================================================== 、、
             // optimization data
 
-            void takeData() {
+            void takeData()
+            {
                 priorF = hasDepthPrior ? setting_idepthFixPrior * SCALE_IDEPTH * SCALE_IDEPTH : 0;
                 if (setting_solverMode & SOLVER_REMOVE_POSEPRIOR)
                     priorF = 0;

@@ -14,12 +14,14 @@
 using namespace ldso;
 using namespace ldso::internal;
 
-namespace ldso {
+namespace ldso
+{
 
     /**
      * point structure used in coarse initializer
      */
-    struct Pnt {
+    struct Pnt
+    {
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
@@ -29,7 +31,7 @@ namespace ldso {
         // idepth / isgood / energy during optimization.
         float idepth;
         bool isGood;
-        Vec2f energy;        // (UenergyPhotometric, energyRegularizer)
+        Vec2f energy; // (UenergyPhotometric, energyRegularizer)
         bool isGood_new;
         float idepth_new;
         Vec2f energy_new;
@@ -58,15 +60,14 @@ namespace ldso {
     /**
      * initializer for monocular slam
      */
-    class CoarseInitializer {
+    class CoarseInitializer
+    {
     public:
-
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         CoarseInitializer(int w, int h);
 
         ~CoarseInitializer();
-
 
         void setFirst(shared_ptr<CalibHessian> HCalib, shared_ptr<FrameHessian> newFrameHessian);
 
@@ -83,9 +84,9 @@ namespace ldso {
         AffLight thisToNext_aff;
         SE3 thisToNext;
 
-
         shared_ptr<FrameHessian> firstFrame;
         shared_ptr<FrameHessian> newFrame;
+
     private:
         Mat33 K[PYR_LEVELS];
         Mat33 Ki[PYR_LEVELS];
@@ -112,7 +113,7 @@ namespace ldso {
         Eigen::DiagonalMatrix<float, 8> wM;
 
         // temporary buffers for H and b.
-        Vec10f *JbBuffer;            // 0-7: sum(dd * dp). 8: sum(res*dd). 9: 1/(1+sum(dd*dd))=inverse hessian entry.
+        Vec10f *JbBuffer; // 0-7: sum(dd * dp). 8: sum(res*dd). 9: 1/(1+sum(dd*dd))=inverse hessian entry.
         Vec10f *JbBuffer_new;
 
         Accumulator9 acc9;
@@ -126,11 +127,11 @@ namespace ldso {
         float couplingWeight;
 
         Vec3f calcResAndGS(
-                int lvl,
-                Mat88f &H_out, Vec8f &b_out,
-                Mat88f &H_out_sc, Vec8f &b_out_sc,
-                const SE3 &refToNew, AffLight refToNew_aff,
-                bool plot);
+            int lvl,
+            Mat88f &H_out, Vec8f &b_out,
+            Mat88f &H_out_sc, Vec8f &b_out_sc,
+            const SE3 &refToNew, AffLight refToNew_aff,
+            bool plot);
 
         Vec3f calcEC(int lvl); // returns OLD NERGY, NEW ENERGY, NUM TERMS.
         void optReg(int lvl);
@@ -155,8 +156,10 @@ namespace ldso {
     /**
      * minimal flann point cloud
      */
-    struct FLANNPointcloud {
-        inline FLANNPointcloud() {
+    struct FLANNPointcloud
+    {
+        inline FLANNPointcloud()
+        {
             num = 0;
             points = 0;
         }
@@ -168,18 +171,22 @@ namespace ldso {
 
         inline size_t kdtree_get_point_count() const { return num; }
 
-        inline float kdtree_distance(const float *p1, const size_t idx_p2, size_t /*size*/) const {
+        inline float kdtree_distance(const float *p1, const size_t idx_p2, size_t /*size*/) const
+        {
             const float d0 = p1[0] - points[idx_p2].u;
             const float d1 = p1[1] - points[idx_p2].v;
             return d0 * d0 + d1 * d1;
         }
 
-        inline float kdtree_get_pt(const size_t idx, int dim) const {
-            if (dim == 0) return points[idx].u;
-            else return points[idx].v;
+        inline float kdtree_get_pt(const size_t idx, int dim) const
+        {
+            if (dim == 0)
+                return points[idx].u;
+            else
+                return points[idx].v;
         }
 
-        template<class BBOX>
+        template <class BBOX>
         bool kdtree_get_bbox(BBOX & /* bb */) const { return false; }
     };
 }
