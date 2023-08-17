@@ -7,6 +7,14 @@
 #include <mutex>
 #include <thread>
 
+#include <ros/ros.h>
+#include "ldso/CamInfo.h"
+#include "ldso/Point3D.h"
+#include "ldso/FeaturePoint.h"
+#include "ldso/FrameInfo.h"
+#include "ldso/RelPose.h"
+#include "ldso/KeyFrame.h"
+
 #include "Frame.h"
 #include "Point.h"
 #include "Feature.h"
@@ -261,6 +269,12 @@ namespace ldso
         void deliverTrackedFrame(shared_ptr<FrameHessian> fh, bool needKF);
 
         /**
+         * send marginalized keyframe to server
+         * @param frame mature keyframes marginalized from the sliding window
+        */
+        void sendMarginalizedKeyFrame(shared_ptr<Frame> frame);
+
+        /**
          * mapping loop is running in a single thread
          */
         void mappingLoop();
@@ -271,6 +285,11 @@ namespace ldso
 
     public:
         shared_ptr<Camera> Hcalib = nullptr; // calib information
+    
+    private:
+        // =============================== ROS interface ================================== //
+        ros::NodeHandle nh;
+        ros::Publisher kf_pub;
 
     private:
         // data

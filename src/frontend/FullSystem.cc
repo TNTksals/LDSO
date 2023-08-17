@@ -657,6 +657,7 @@ namespace ldso
         globalMap->AddKeyFrame(fh->frame);
         if (setting_enableLoopClosing)
         {
+            sendMarginalizedKeyFrame(frame);
             loopClosing->InsertKeyFrame(frame);
         }
         LOG(INFO) << "make keyframe done" << endl;
@@ -2127,6 +2128,71 @@ namespace ldso
             mappedFrameSignal.notify_all();
         }
         LOG(INFO) << "MAPPING FINISHED!";
+    }
+
+    void FullSystem::sendMarginalizedKeyFrame(shared_ptr<Frame> kf)
+    {
+        ldso::KeyFrame kf_msg;
+
+        kf_msg.header.stamp = ros::Time::now();
+        kf_msg.frame.time_stamp = kf->timeStamp;
+        kf_msg.frame.id = kf->id;
+        kf_msg.frame.kf_id = kf->kfId;
+
+        for (auto &feat : kf->features)
+        {
+            FeaturePoint fp;
+            fp.status = feat->status;
+            fp.angle = feat->angle;
+            fp.score = feat->score;
+            fp.isCorner = feat->isCorner;
+            fp.level = feat->level;
+            fp.position_x = feat->uv[0];
+            fp.position_y = feat->uv[1];
+            fp.invD = feat->invD;
+            memcpy(fp.descriptor.data(), feat->descriptor, sizeof(uchar) * 32);
+            Point3D p3d;
+            if (feat->point != nullptr)
+            {
+                p3d.id = feat->point->id;
+                p3d.status = feat->point->status;
+                p3d.mWorldPos.x = feat->point->mWorldPos[0];
+                p3d.mWorldPos.y = feat->point->mWorldPos[1];
+                p3d.mWorldPos.z = feat->point->mWorldPos[2];
+                fp.point = p3d;
+            }
+            else
+                p3d.id = -1;
+            kf_msg.frame.features.emplace_back(fp);
+        }
+
+        for (auto &e : kf->poseRel)
+        {
+            RelPose rel_pose;
+            rel_pose.frame.id = e.first->id;
+            rel_pose.frame.kf_id = e.first->kfId;
+            rel_pose.frame.time_stamp = e.first->timeStamp;
+            rel_pose.pose.data.resize(sizeof(e.second));
+            memcpy(rel_pose.pose.data.data(), (int8_t*)&e.second, sizeof(e.second));
+            // cout << e.second.Tcr.matrix() << " " << e.second.info << endl;
+            kf_msg.rel_poses.emplace_back(rel_pose);
+        }
+
+        CamInfo cam_info;
+        cam_info.fx = Hcalib->fx;
+        cam_info.fy = Hcalib->fy;
+        cam_info.cx = Hcalib->cx;
+        cam_info.cy = Hcalib->cy;
+        cam_info.value_scaledf.data.resize(4);
+        memcpy(cam_info.value_scaledf.data.data(), Hcalib->mpCH->value_scaledf.data(), sizeof(float) * 4);
+        cam_info.value_scaledi.data.resize(4);
+        memcpy(cam_info.value_scaledi.data.data(), Hcalib->mpCH->value_scaledi.data(), sizeof(float) * 4);
+        kf_msg.cam_info = cam_info;
+        // for (int i = 0; i < 4; ++i)
+        //     cout << Hcalib->mpCH->value_scaledf[i] << " ";
+        // cout << endl;
+
+        kf_pub.publish(kf_msg);
     }
 
     bool FullSystem::saveAll(const string &filename)
