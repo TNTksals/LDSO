@@ -56,7 +56,7 @@ namespace ldso
                 // assign feature to grid
                 int gridX = features[i]->uv[0] / gridSize;
                 int gridY = features[i]->uv[1] / gridSize;
-                grid[gridY * gw + gridX].push_back(i);
+                grid[gridY * gw + gridX].emplace_back(i);
             }
         }
     }
@@ -92,7 +92,7 @@ namespace ldso
                     float v = features[k]->uv[1];
 
                     if (((u - x) * (u - x) + (v - y) * (v - y)) < r2)
-                        indices.push_back(k);
+                        indices.emplace_back(k);
                 }
             }
         return indices;
@@ -110,8 +110,8 @@ namespace ldso
                 cv::Mat m(1, 32, CV_8U);
                 for (int k = 0; k < 32; k++)
                     m.data[k] = feat->descriptor[k];
-                allDesp.push_back(m);
-                bowIdx.push_back(i);
+                allDesp.emplace_back(m);
+                bowIdx.emplace_back(i);
             }
         }
         voc->transform(allDesp, bowVec, featVec, 4);
@@ -132,7 +132,7 @@ namespace ldso
         {
             if (feat->status == Feature::FeatureStatus::VALID)
             {
-                pts.push_back(feat->point);
+                pts.emplace_back(feat->point);
             }
         }
         return pts;

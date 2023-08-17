@@ -40,7 +40,7 @@ namespace ldso
         void EnergyFunctional::insertFrame(shared_ptr<FrameHessian> fh, shared_ptr<CalibHessian> Hcalib)
         {
             fh->takeData();
-            frames.push_back(fh);
+            frames.emplace_back(fh);
             fh->idx = frames.size();
             nFrames++;
 
@@ -65,8 +65,7 @@ namespace ldso
             {
                 connectivityMap[(((uint64_t)fh->frameID) << 32) + ((uint64_t)fh2->frameID)] = Eigen::Vector2i(0, 0);
                 if (fh2 != fh)
-                    connectivityMap[(((uint64_t)fh2->frameID) << 32) + ((uint64_t)fh->frameID)] = Eigen::Vector2i(0,
-                                                                                                                  0);
+                    connectivityMap[(((uint64_t)fh2->frameID) << 32) + ((uint64_t)fh->frameID)] = Eigen::Vector2i(0, 0);
             }
         }
 
@@ -197,7 +196,7 @@ namespace ldso
                             if (r->isActive())
                                 connectivityMap[(((uint64_t)r->host.lock()->frameID) << 32) +
                                                 ((uint64_t)r->target.lock()->frameID)][1]++;
-                        allPointsToMarg.push_back(p);
+                        allPointsToMarg.emplace_back(p);
                     }
                 }
             }
@@ -436,7 +435,7 @@ namespace ldso
                         feat->point->status == Point::PointStatus::ACTIVE)
                     {
                         shared_ptr<PointHessian> p = feat->point->mpPH;
-                        allPoints.push_back(p);
+                        allPoints.emplace_back(p);
                         for (auto &r : p->residuals)
                         {
                             r->hostIDX = r->host.lock()->idx;
