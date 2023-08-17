@@ -33,7 +33,7 @@ namespace ldso
 
             inline IndexThreadReduce()
             {
-                callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, _1, _2, _3, _4);
+                callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4);
                 for (int i = 0; i < NUM_THREADS; i++)
                 {
                     isDone[i] = false;
@@ -101,7 +101,7 @@ namespace ldso
 
                 nextIndex = 0;
                 maxIndex = 0;
-                this->callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, _1, _2, _3, _4);
+                this->callPerIndex = bind(&IndexThreadReduce::callPerIndexDefault, this, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4);
             }
 
             Running stats;
