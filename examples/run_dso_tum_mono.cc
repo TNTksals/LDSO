@@ -387,16 +387,16 @@ int main(int argc, char **argv)
         std::vector<double> timesToPlayAt;
         for (int i = lstart; i >= 0 && i < reader->getNumImages() && linc * i < linc * lend; i += linc) 
         {
-            idsToPlay.push_back(i);
+            idsToPlay.emplace_back(i);
             if (timesToPlayAt.size() == 0) 
             {
-                timesToPlayAt.push_back((double) 0);
+                timesToPlayAt.emplace_back((double) 0);
             } 
             else 
             {
                 double tsThis = reader->getTimestamp(idsToPlay[idsToPlay.size() - 1]);
                 double tsPrev = reader->getTimestamp(idsToPlay[idsToPlay.size() - 2]);
-                timesToPlayAt.push_back(timesToPlayAt.back() + fabs(tsThis - tsPrev) / playbackSpeed);
+                timesToPlayAt.emplace_back(timesToPlayAt.back() + fabs(tsThis - tsPrev) / playbackSpeed);
             }
         }
 
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
             for (int ii = 0; ii < (int) idsToPlay.size(); ii++) 
             {
                 int i = idsToPlay[ii];
-                preloadedImages.push_back(reader->getImage(i));
+                preloadedImages.emplace_back(reader->getImage(i));
             }
         }
 

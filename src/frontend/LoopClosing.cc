@@ -33,7 +33,7 @@ namespace ldso
     void LoopClosing::InsertKeyFrame(shared_ptr<Frame> &frame)
     {
         unique_lock<mutex> lock(mutexKFQueue);
-        KFqueue.push_back(frame);
+        KFqueue.emplace_back(frame);
     }
 
     void LoopClosing::Run()
@@ -64,7 +64,7 @@ namespace ldso
                 if (KFqueue.size() > 20)
                     KFqueue.clear();
 
-                allKF.push_back(currentKF);
+                allKF.emplace_back(currentKF);
             }
 
             currentKF->ComputeBoW(voc);
@@ -208,9 +208,9 @@ namespace ldso
                                                            Hcalib->fyli() * (featKF->uv[1] - Hcalib->cyl()),
                                                            1);
                     cv::Point3f pt3d(pt3[0], pt3[1], pt3[2]);
-                    p3d.push_back(pt3d);
-                    p2d.push_back(cv::Point2f(featCurrent->uv[0], featCurrent->uv[1]));
-                    matchIdx.push_back(k);
+                    p3d.emplace_back(pt3d);
+                    p2d.emplace_back(cv::Point2f(featCurrent->uv[0], featCurrent->uv[1]));
+                    matchIdx.emplace_back(k);
                 }
             }
 
@@ -244,7 +244,7 @@ namespace ldso
             vector<Match> inlierMatches;
             for (int k = 0; k < inliers.rows; k++)
             {
-                inlierMatches.push_back(matches[matchIdx[inliers.at<int>(k, 0)]]);
+                inlierMatches.emplace_back(matches[matchIdx[inliers.at<int>(k, 0)]]);
                 cntInliers++;
             }
 
@@ -369,7 +369,7 @@ namespace ldso
             if (feat->status == Feature::FeatureStatus::VALID &&
                 feat->point->status != Point::PointStatus::OUTLIER)
             {
-                candidateFeatures.push_back(feat);
+                candidateFeatures.emplace_back(feat);
             }
         }
 
@@ -440,10 +440,10 @@ namespace ldso
                 idepth = idepthMap[vi * wG[0] + ui];
 
                 Vec3 pcurr = (1.0f / idepth) * (Ki * Vec3(bestFeat->uv[0], bestFeat->uv[1], 1));
-                matchedPoints.push_back(pRef);
-                matchedFeatures.push_back(pcurr);
+                matchedPoints.emplace_back(pRef);
+                matchedFeatures.emplace_back(pcurr);
 
-                matchedPixels.push_back(Vec2(bestFeat->uv[0], bestFeat->uv[1]));
+                matchedPixels.emplace_back(Vec2(bestFeat->uv[0], bestFeat->uv[1]));
 
                 nmatches++;
             }
@@ -491,7 +491,7 @@ namespace ldso
             Mat33 inforMat = infor * Matrix3d::Identity();
             e3d->setInformation(inforMat); // TODO should not be identity.
             e3d->setMeasurement(matchedFeatures[i]);
-            edgesSim3.push_back(e3d);
+            edgesSim3.emplace_back(e3d);
 
             g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
             rk->setDelta(th);
@@ -503,7 +503,7 @@ namespace ldso
             eProj->setInformation(Mat22::Identity());
             eProj->setMeasurement(matchedPixels[i]);
             optimizer.addEdge(eProj);
-            edgesProjection.push_back(eProj);
+            edgesProjection.emplace_back(eProj);
         }
 
         LOG(INFO) << "Start optimization";
