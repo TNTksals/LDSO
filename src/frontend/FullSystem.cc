@@ -2,6 +2,12 @@
 #include "Frame.h"
 #include "Point.h"
 
+#include "ldso/Point3D.h"
+#include "ldso/FeaturePoint.h"
+#include "ldso/FrameInfo.h"
+#include "ldso/RelPose.h"
+#include "ldso/KeyFrame.h"
+
 #include "frontend/FullSystem.h"
 #include "frontend/CoarseInitializer.h"
 #include "frontend/CoarseTracker.h"
@@ -38,6 +44,9 @@ namespace ldso
                      "LDSO: Direct Sparse Odometry with Loop Closure, X. Gao, R. Wang, N. Demmel, D. Cremers, "
                      "In International Conference on Intelligent Robots and Systems (IROS), 2018 "
                   << endl;
+
+        nh = ros::NodeHandle("~");
+        kf_pub = nh.advertise<ldso::KeyFrame>("/keyframe", 10);
 
         Hcalib->CreateCH(Hcalib);
         lastCoarseRMSE.setConstant(100);
@@ -84,7 +93,7 @@ namespace ldso
         // create frame and frame hessian
         shared_ptr<Frame> frame(new Frame(image->timestamp));
         frame->CreateFH(frame);
-        allFrameHistory.push_back(frame);
+        allFrameHistory.emplace_back(frame);
 
         // ==== make images ==== //
         shared_ptr<FrameHessian> fh = frame->frameHessian;
@@ -96,7 +105,8 @@ namespace ldso
             LOG(INFO) << "Initializing ... " << endl;
             // use initializer
             if (coarseInitializer->frameID < 0)
-            { // first frame not set, set it
+            {
+                // first frame not set, set it
                 coarseInitializer->setFirst(Hcalib->mpCH, fh);
             }
             else if (coarseInitializer->trackFrame(fh))
@@ -196,7 +206,7 @@ namespace ldso
         else
         {
             unique_lock<mutex> lock(trackMapSyncMutex);
-            unmappedTrackedFrames.push_back(fh->frame);
+            unmappedTrackedFrames.emplace_back(fh->frame);
             trackedFrameSignal.notify_all();
             while (coarseTracker_forNewKF->refFrameID == -1 && coarseTracker->refFrameID == -1)
             {
@@ -222,7 +232,7 @@ namespace ldso
             lastF_2_fh_tries;
         if (allFrameHistory.size() == 2)
             for (unsigned int i = 0; i < lastF_2_fh_tries.size(); i++) // TODO: maybe wrong, size is obviously zero
-                lastF_2_fh_tries.push_back(SE3());                     // use identity
+                lastF_2_fh_tries.emplace_back(SE3());                  // use identity
         else
         {
 
@@ -234,7 +244,8 @@ namespace ldso
             SE3 slast_2_sprelast;
             SE3 lastF_2_slast;
 
-            { // lock on global pose consistency!
+            {
+                // lock on global pose consistency!
                 unique_lock<mutex> crlock(shellPoseMutex);
                 slast_2_sprelast = sprelast->getPose() * slast->getPose().inverse();
                 lastF_2_slast = slast->getPose() * lastF->frame->getPose().inverse();
@@ -243,13 +254,13 @@ namespace ldso
             SE3 fh_2_slast = slast_2_sprelast; // assumed to be the same as fh_2_slast.
 
             // get last delta-movement.
-            lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast); // assume constant motion.
-            lastF_2_fh_tries.push_back(fh_2_slast.inverse() * fh_2_slast.inverse() *
-                                       lastF_2_slast); // assume double motion (frame skipped)
-            lastF_2_fh_tries.push_back(
+            lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast); // assume constant motion.
+            lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * fh_2_slast.inverse() *
+                                          lastF_2_slast); // assume double motion (frame skipped)
+            lastF_2_fh_tries.emplace_back(
                 SE3::exp(fh_2_slast.log() * 0.5).inverse() * lastF_2_slast); // assume half motion.
-            lastF_2_fh_tries.push_back(lastF_2_slast);                       // assume zero motion.
-            lastF_2_fh_tries.push_back(SE3());                               // assume zero motion FROM KF.
+            lastF_2_fh_tries.emplace_back(lastF_2_slast);                    // assume zero motion.
+            lastF_2_fh_tries.emplace_back(SE3());                            // assume zero motion FROM KF.
 
             // just try a TON of different initializations (all rotations). In the end,
             // if they don't work they will only be tried on the coarsest level, which is super fast anyway.
@@ -257,90 +268,90 @@ namespace ldso
             for (float rotDelta = 0.02;
                  rotDelta < 0.05; rotDelta += 0.01)
             { // TODO changed this into +=0.01 where DSO writes ++
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, 0, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, 0, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, 0, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, -rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, 0, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, 0, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, -rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, 0, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, 0, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, 0),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, 0, -rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, 0, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, -rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
-                lastF_2_fh_tries.push_back(fh_2_slast.inverse() * lastF_2_slast *
-                                           SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, rotDelta),
-                                               Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, 0, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, 0, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, 0, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, -rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, 0, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, 0, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, -rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, 0, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, 0, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, 0),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, 0, -rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, 0, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, -rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, -rotDelta, rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, -rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, -rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
+                lastF_2_fh_tries.emplace_back(fh_2_slast.inverse() * lastF_2_slast *
+                                              SE3(Sophus::Quaterniond(1, rotDelta, rotDelta, rotDelta),
+                                                  Vec3(0, 0, 0))); // assume constant motion.
             }
 
             if (!slast->poseValid || !sprelast->poseValid || !lastF->frame->poseValid)
             {
                 lastF_2_fh_tries.clear();
-                lastF_2_fh_tries.push_back(SE3());
+                lastF_2_fh_tries.emplace_back(SE3());
             }
         }
 
@@ -477,7 +488,7 @@ namespace ldso
         {
             unique_lock<mutex> lck(framesMutex);
             fh->idx = frames.size();
-            frames.push_back(fh->frame);
+            frames.emplace_back(fh->frame);
             fh->frame->kfId = fh->frameID = globalMap->NumFrames();
         }
 
@@ -488,7 +499,8 @@ namespace ldso
         LOG(INFO) << "adding new residuals" << endl;
         int numFwdResAdde = 0;
         for (auto fht : frames)
-        { // go through all active frames
+        {
+            // go through all active frames
             shared_ptr<FrameHessian> &fh1 = fht->frameHessian;
             if (fh1 == fh)
                 continue;
@@ -496,15 +508,13 @@ namespace ldso
             {
                 if (feat->status == Feature::FeatureStatus::VALID && feat->point->status == Point::PointStatus::ACTIVE)
                 {
-
                     shared_ptr<PointHessian> ph = feat->point->mpPH;
 
                     // add new residuals into this point hessian
-                    shared_ptr<PointFrameResidual> r(
-                        new PointFrameResidual(ph, fh1, fh)); // residual from fh1 to fh
+                    shared_ptr<PointFrameResidual> r(new PointFrameResidual(ph, fh1, fh)); // residual from fh1 to fh
 
                     r->setState(ResState::IN);
-                    ph->residuals.push_back(r);
+                    ph->residuals.emplace_back(r);
                     ef->insertResidual(r);
 
                     ph->lastResiduals[1] = ph->lastResiduals[0];
@@ -560,7 +570,7 @@ namespace ldso
             coarseTracker_forNewKF->makeK(Hcalib->mpCH);
             vector<shared_ptr<FrameHessian>> fhs;
             for (auto &f : frames)
-                fhs.push_back(f->frameHessian);
+                fhs.emplace_back(f->frameHessian);
             coarseTracker_forNewKF->setCoarseTrackingRef(fhs);
         }
 
@@ -828,7 +838,7 @@ namespace ldso
                     {
                         if (!r->isLinearized)
                         {
-                            activeResiduals.push_back(r);
+                            activeResiduals.emplace_back(r);
                             r->resetOOB();
                         }
                         else
@@ -849,7 +859,7 @@ namespace ldso
 
         // apply res
         if (multiThreading)
-            threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
+            threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4), 0,
                                 activeResiduals.size(), 50);
         else
             applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
@@ -897,10 +907,9 @@ namespace ldso
             if (setting_forceAceptStep || (newEnergy[0] + newEnergy[1] + newEnergyL + newEnergyM <
                                            lastEnergy[0] + lastEnergy[1] + lastEnergyL + lastEnergyM))
             {
-
                 // energy is decreasing
                 if (multiThreading)
-                    threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, _1, _2, _3, _4), 0,
+                    threadReduce.reduce(bind(&FullSystem::applyRes_Reductor, this, true, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4), 0,
                                         activeResiduals.size(), 50);
                 else
                     applyRes_Reductor(true, 0, activeResiduals.size(), 0, 0);
@@ -1113,7 +1122,7 @@ namespace ldso
                 r->state_NewEnergy = r->state_energy = 0;
                 r->state_NewState = ResState::OUTLIER;
                 r->setState(ResState::IN);
-                p->residuals.push_back(r);
+                p->residuals.emplace_back(r);
 
                 if (target == frames.back()->frameHessian)
                 {
@@ -1209,7 +1218,7 @@ namespace ldso
         auto newestFr = frames.back();
         vector<shared_ptr<FrameHessian>> frameHessians;
         for (auto fr : frames)
-            frameHessians.push_back(fr->frameHessian);
+            frameHessians.emplace_back(fr->frameHessian);
 
         // make dist map
         coarseDistanceMap->makeK(Hcalib->mpCH);
@@ -1276,7 +1285,7 @@ namespace ldso
                         if (dist >= currentMinActDist * ph->my_type)
                         {
                             coarseDistanceMap->addIntoDistFinal(u, v);
-                            toOptimize.push_back(ph);
+                            toOptimize.emplace_back(ph);
                         }
                     }
                     else
@@ -1296,7 +1305,7 @@ namespace ldso
         if (multiThreading)
         {
             threadReduce.reduce(
-                bind(&FullSystem::activatePointsMT_Reductor, this, &optimized, &toOptimize, _1, _2, _3, _4), 0,
+                bind(&FullSystem::activatePointsMT_Reductor, this, &optimized, &toOptimize, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4), 0,
                 toOptimize.size(), 50);
         }
         else
@@ -1360,7 +1369,7 @@ namespace ldso
 
         for (int i = 0; i < (int)frames.size(); i++)
             if (frames[i]->frameHessian->flaggedForMarginalization)
-                fhsToMargPoints.push_back(frames[i]->frameHessian);
+                fhsToMargPoints.emplace_back(frames[i]->frameHessian);
 
         int flag_oob = 0, flag_in = 0, flag_inin = 0, flag_nores = 0;
 
@@ -1468,7 +1477,7 @@ namespace ldso
                         continue;
                     }
                     else
-                        newFrame->frame->features.push_back(feat);
+                        newFrame->frame->features.emplace_back(feat);
                 }
             LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << endl;
         }
@@ -1491,7 +1500,7 @@ namespace ldso
                     continue;
                 }
                 else
-                    newFrame->frame->features.push_back(feat);
+                    newFrame->frame->features.emplace_back(feat);
             }
             LOG(INFO) << "new features features created: " << newFrame->frame->features.size() << endl;
         }
@@ -1505,10 +1514,10 @@ namespace ldso
         shared_ptr<Frame> fr = firstFrame->frame;
         firstFrame->idx = frames.size();
 
-        frames.push_back(fr);
+        frames.emplace_back(fr);
         firstFrame->frameID = globalMap->NumFrames();
-        ef->insertFrame(firstFrame, Hcalib->mpCH);
-        setPrecalcValues();
+        ef->insertFrame(firstFrame, Hcalib->mpCH); // 将第一帧加入到优化后端energyFunction
+        setPrecalcValues();                        // 建立所有帧的目标帧，并且进行主导帧和目标帧之间相对状态的预计算
 
         fr->features.reserve(wG[0] * hG[0] * 0.2f);
 
@@ -1552,7 +1561,7 @@ namespace ldso
                 continue;
             }
             feat->ReleaseImmature(); // no longer needs the immature part
-            fr->features.push_back(feat);
+            fr->features.emplace_back(feat);
 
             ph->setIdepthScaled(point->iR * rescaleFactor);
             ph->setIdepthZero(ph->idepth);
@@ -1639,7 +1648,7 @@ namespace ldso
         if (multiThreading)
         {
             threadReduce.reduce(
-                bind(&FullSystem::linearizeAll_Reductor, this, fixLinearization, toRemove, _1, _2, _3, _4),
+                bind(&FullSystem::linearizeAll_Reductor, this, fixLinearization, toRemove, placeholders::_1, placeholders::_2, placeholders::_3, placeholders::_4),
                 0, activeResiduals.size(), 0);
             lastEnergyP = threadReduce.stats[0];
         }
@@ -1732,7 +1741,7 @@ namespace ldso
                 }
                 else
                 {
-                    toRemove[tid].push_back(activeResiduals[k]);
+                    toRemove[tid].emplace_back(activeResiduals[k]);
                 }
             }
         }
@@ -1958,8 +1967,8 @@ namespace ldso
                 nullspace_x0.segment<3>(CPARS + fh->idx * 8) *= SCALE_XI_TRANS_INVERSE;
                 nullspace_x0.segment<3>(CPARS + fh->idx * 8 + 3) *= SCALE_XI_ROT_INVERSE;
             }
-            nullspaces_x0_pre.push_back(nullspace_x0);
-            nullspaces_pose.push_back(nullspace_x0);
+            nullspaces_x0_pre.emplace_back(nullspace_x0);
+            nullspaces_pose.emplace_back(nullspace_x0);
         }
         for (int i = 0; i < 2; i++)
         {
@@ -1972,11 +1981,11 @@ namespace ldso
                 nullspace_x0[CPARS + fh->idx * 8 + 6] *= SCALE_A_INVERSE;
                 nullspace_x0[CPARS + fh->idx * 8 + 7] *= SCALE_B_INVERSE;
             }
-            nullspaces_x0_pre.push_back(nullspace_x0);
+            nullspaces_x0_pre.emplace_back(nullspace_x0);
             if (i == 0)
-                nullspaces_affA.push_back(nullspace_x0);
+                nullspaces_affA.emplace_back(nullspace_x0);
             if (i == 1)
-                nullspaces_affB.push_back(nullspace_x0);
+                nullspaces_affB.emplace_back(nullspace_x0);
         }
 
         VecX nullspace_x0(n);
@@ -1988,8 +1997,8 @@ namespace ldso
             nullspace_x0.segment<3>(CPARS + fh->idx * 8) *= SCALE_XI_TRANS_INVERSE;
             nullspace_x0.segment<3>(CPARS + fh->idx * 8 + 3) *= SCALE_XI_ROT_INVERSE;
         }
-        nullspaces_x0_pre.push_back(nullspace_x0);
-        nullspaces_scale.push_back(nullspace_x0);
+        nullspaces_x0_pre.emplace_back(nullspace_x0);
+        nullspaces_scale.emplace_back(nullspace_x0);
 
         return nullspaces_x0_pre;
     }
@@ -2006,7 +2015,7 @@ namespace ldso
         for (auto &r : activeResiduals)
             if (r->state_NewEnergyWithOutlier >= 0 && r->target.lock() == newFrame)
             {
-                allResVec.push_back(r->state_NewEnergyWithOutlier);
+                allResVec.emplace_back(r->state_NewEnergyWithOutlier);
             }
 
         if (allResVec.size() == 0)
