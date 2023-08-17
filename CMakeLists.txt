@@ -46,6 +46,22 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
 )
 
+add_message_files(
+  FILES
+  CamInfo.msg
+  Point3D.msg
+  FeaturePoint.msg
+  FrameInfo.msg
+  RelPose.msg
+  KeyFrame.msg
+)
+
+generate_messages(
+  DEPENDENCIES
+  std_msgs
+  geometry_msgs
+)
+
 catkin_package(
   INCLUDE_DIRS
   include
