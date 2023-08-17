@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.10)
 project(ldso)
 
 # Set default build type if not specified otherwise.
@@ -28,13 +28,41 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 # required libs
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(OpenCV REQUIRED)
 find_package(Glog REQUIRED)
 find_package(Pangolin REQUIRED)
 
 # optional libs
 find_package(LibZip QUIET)
+
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  std_msgs
+  geometry_msgs
+  # image_transport
+  cv_bridge
+  image_geometry
+  message_generation
+)
+
+catkin_package(
+  INCLUDE_DIRS
+  include
+  CATKIN_DEPENDS
+  roscpp
+  std_msgs
+  geometry_msgs
+  message_runtime
+  LIBRARIES ${PROJECT_NAME}
+  # DEPENDS system_lib
+)
+
+message("-- Eigen include dir: " ${EIGEN3_INCLUDE_DIR})
+message("-- OpenCV include dir: " ${OpenCV_INCLUDE_DIRS})
+message("-- Glog include dir: " ${GLOG_INCLUDE_DIRS})
+# set (Pangolin_INCLUDE_DIRS /usr/local/include/pangolin)
+message("-- Pangolin include dir: " ${Pangolin_INCLUDE_DIRS})
 
 set(CMAKE_CXX_FLAGS "-Wall -Wno-deprecated -march=native -Wno-duplicate-decl-specifier -Wno-ignored-qualifiers -Wno-reorder -Wno-missing-braces")
 
@@ -53,24 +81,27 @@ else()
 endif()
 
 include_directories(
-        ${EIGEN3_INCLUDE_DIR}
-        ${OpenCV_INCLUDE_DIR}
-        ${Glog_INCLUDE_DIRS}
-        ${Pangolin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
+  ${OpenCV_INCLUDE_DIR}
+  ${Glog_INCLUDE_DIRS}
+  ${Pangolin_INCLUDE_DIRS}
+  
+  ${PROJECT_SOURCE_DIR}/include
+  ${PROJECT_SOURCE_DIR}/thirdparty/
+  ${PROJECT_SOURCE_DIR}/thirdparty/g2o/
+  ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/
 
-        ${PROJECT_SOURCE_DIR}/include
-        ${PROJECT_SOURCE_DIR}/thirdparty/
-        ${PROJECT_SOURCE_DIR}/thirdparty/g2o/
-        ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/
+  ${catkin_INCLUDE_DIRS}
 )
 
-set( THIRD_PARTY_LIBS
-        ${OpenCV_LIBS}
-        ${GLOG_LIBRARY}
-        ${Pangolin_LIBRARIES}
-        ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/build/src/libDBoW3${CMAKE_SHARED_LIBRARY_SUFFIX}
-        ${LIBZIP_LIBRARY}
+set(THIRD_PARTY_LIBS
+  ${OpenCV_LIBS}
+  ${GLOG_LIBRARY}
+  ${Pangolin_LIBRARIES}
+  ${PROJECT_SOURCE_DIR}/thirdparty/g2o/lib/libg2o${CMAKE_SHARED_LIBRARY_SUFFIX}
+  ${PROJECT_SOURCE_DIR}/thirdparty/DBoW3/build/src/libDBoW3${CMAKE_SHARED_LIBRARY_SUFFIX}
+  ${LIBZIP_LIBRARY}
+  ${catkin_LIBRARIES}
 )
 
 add_subdirectory(src)
