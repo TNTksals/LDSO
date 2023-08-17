@@ -25,7 +25,7 @@ namespace ldso
         unique_lock<mutex> mapLock(mapMutex);
         if (frames.find(kf) == frames.end())
         {
-            frames.insert(kf);
+            frames.emplace(kf);
         }
     }
 

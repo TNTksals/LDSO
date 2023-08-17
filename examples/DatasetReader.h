@@ -42,7 +42,7 @@ inline int getdir(std::string dir, std::vector<std::string> &files)
     {
         std::string name = std::string(dirp->d_name);
         if (name != "." && name != ".." && name.substr(name.size() - 3, name.size()) == "jpg")
-            files.push_back(name);
+            files.emplace_back(name);
     }
     closedir(dp);
     std::sort(files.begin(), files.end());
@@ -126,7 +126,7 @@ public:
                     std::string nstr = std::string(name);
                     if (nstr == "." || nstr == "..")
                         continue;
-                    files.push_back(name);
+                    files.emplace_back(name);
                 }
 
                 printf("got %d entries and %d files!\n", numEntries, (int)files.size());
@@ -316,8 +316,8 @@ private:
 
             if (2 == sscanf(buf, "%lf,%s", &stamp, filename))
             {
-                timestamps.push_back(stamp * 1e-9);
-                files.push_back(path + "/data/" + string(filename));
+                timestamps.emplace_back(stamp * 1e-9);
+                files.emplace_back(path + "/data/" + string(filename));
             }
         }
         tr.close();
@@ -351,7 +351,7 @@ private:
             if (std::isnan(stamp))
                 break;
 
-            timestamps.push_back(stamp);
+            timestamps.emplace_back(stamp);
         }
         tr.close();
 
@@ -359,7 +359,7 @@ private:
         boost::format fmt("%s/image_0/%06d.png");
         for (size_t i = 0; i < timestamps.size(); i++)
         {
-            files.push_back((fmt % path % i).str());
+            files.emplace_back((fmt % path % i).str());
         }
 
         LOG(INFO) << "Load total " << timestamps.size() << " data entries." << endl;
@@ -392,13 +392,13 @@ private:
 
             if (3 == sscanf(buf, "%d %lf %f", &id, &stamp, &exposure))
             {
-                timestamps.push_back(stamp);
-                exposures.push_back(exposure);
+                timestamps.emplace_back(stamp);
+                exposures.emplace_back(exposure);
             }
             else if (2 == sscanf(buf, "%d %lf", &id, &stamp))
             {
-                timestamps.push_back(stamp);
-                exposures.push_back(exposure);
+                timestamps.emplace_back(stamp);
+                exposures.emplace_back(exposure);
             }
         }
         tr.close();
