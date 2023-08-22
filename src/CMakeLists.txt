@@ -28,6 +28,8 @@ add_library(ldso
   frontend/PixelSelector2.cc
   frontend/Undistort.cc
   frontend/ImageRW_OpenCV.cc
+
+  backend/SystemServer.cc
 )
 
 target_link_libraries(ldso

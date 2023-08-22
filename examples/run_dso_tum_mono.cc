@@ -319,6 +319,7 @@ void parseArgument(char *arg)
 
 int main(int argc, char **argv)
 {
+    ros::init(argc, argv, "run_tmu_mono_agent");
 
     FLAGS_colorlogtostderr = true;
     for (int i = 1; i < argc; i++)
@@ -362,6 +363,7 @@ int main(int argc, char **argv)
         linc = -1;
     }
 
+    // TODO
     shared_ptr<ORBVocabulary> voc(new ORBVocabulary());
     voc->load(vocPath);
 
@@ -441,7 +443,8 @@ int main(int argc, char **argv)
                 img = reader->getImage(i);
 
             bool skipFrame = false;
-            if (playbackSpeed != 0) {
+            if (playbackSpeed != 0)
+            {
                 struct timeval tv_now;
                 gettimeofday(&tv_now, NULL);
                 double sSinceStart = sInitializerOffset + ((tv_now.tv_sec - tv_start.tv_sec) +

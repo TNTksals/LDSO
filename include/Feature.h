@@ -45,6 +45,14 @@ namespace ldso
             OUTLIER       // the immature point diverges, or the map point becomes an outlier
         };                // the status of feature
 
+        Feature() = default;
+
+        /**
+         * Constructor
+         * @param u pixel position in image
+         * @param v pixel position in image
+         * @param host the host frame
+         */
         Feature(float u, float v, shared_ptr<Frame> host) : host(host), uv(Vec2f(u, v)) {}
 
         ~Feature() {}

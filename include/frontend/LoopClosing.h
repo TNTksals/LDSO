@@ -22,6 +22,8 @@ namespace ldso
 {
     class FullSystem;
 
+    class SystemServer;
+
     /**
      * Loop closing thread, also used for correcting loops
      *
@@ -35,7 +37,11 @@ namespace ldso
         // Consistent group, the first is a group of keyframes that are considered as consistent, and the second is how many times they are detected
         typedef pair<set<shared_ptr<Frame>>, int> ConsistentGroup;
 
+        // Constructor for the LoopClosing class, used on agent.
         LoopClosing(FullSystem *fullSystem);
+
+        // Constructor for the LoopClosing class, used on server.
+        LoopClosing(SystemServer *system_server);
 
         ~LoopClosing()
         {
@@ -107,6 +113,7 @@ namespace ldso
 
         // data
         FullSystem *fullSystem;
+        SystemServer *system_server = nullptr;
         shared_ptr<Map> globalMap = nullptr; // global map
 
         // shared_ptr<KeyFrameDatabase> kfDB = nullptr;

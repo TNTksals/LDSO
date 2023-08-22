@@ -19,6 +19,8 @@ namespace ldso
 
     class FullSystem;
 
+    class SystemServer;
+
     /**
      * The global map contains all keyframes and map points, even if they are marginalized or outdated.
      * The map can be saved to and loaded from disk, if you wanna reuse it.
@@ -30,6 +32,8 @@ namespace ldso
     {
     public:
         Map(FullSystem *fs) : fullsystem(fs) {}
+
+        Map(SystemServer *system_server) : system_server(system_server) {}
 
         /**
          * add a keyframe into the global map
@@ -87,6 +91,7 @@ namespace ldso
         mutex mutexPoseGraph;
 
         FullSystem *fullsystem = nullptr;
+        SystemServer *system_server = nullptr;
     };
 
 }

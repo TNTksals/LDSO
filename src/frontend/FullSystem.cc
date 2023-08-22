@@ -2,6 +2,9 @@
 #include "Frame.h"
 #include "Point.h"
 
+#include "ldso/FrameHessianData.h"
+#include "ldso/PointFrameResidualData.h"
+#include "ldso/PointHessianData.h"
 #include "ldso/Point3D.h"
 #include "ldso/FeaturePoint.h"
 #include "ldso/FrameInfo.h"
@@ -46,7 +49,7 @@ namespace ldso
                   << endl;
 
         nh = ros::NodeHandle("~");
-        kf_pub = nh.advertise<ldso::KeyFrame>("/keyframe", 10);
+        kf_pub = nh.advertise<ldso::KeyFrame>("/keyframe", 1000);
 
         Hcalib->CreateCH(Hcalib);
         lastCoarseRMSE.setConstant(100);
@@ -56,16 +59,16 @@ namespace ldso
         pixelSelector = shared_ptr<PixelSelector>(new PixelSelector(wG[0], hG[0]));
         selectionMap = new float[wG[0] * hG[0]];
 
-        if (setting_enableLoopClosing)
-        {
-            loopClosing = shared_ptr<LoopClosing>(new LoopClosing(this));
-            if (setting_fastLoopClosing)
-                LOG(INFO) << "Use fast loop closing" << endl;
-        }
-        else
-        {
-            LOG(INFO) << "loop closing is disabled" << endl;
-        }
+        // if (setting_enableLoopClosing)
+        // {
+        //     loopClosing = shared_ptr<LoopClosing>(new LoopClosing(this));
+        //     if (setting_fastLoopClosing)
+        //         LOG(INFO) << "Use fast loop closing" << endl;
+        // }
+        // else
+        // {
+        //     LOG(INFO) << "loop closing is disabled" << endl;
+        // }
     }
 
     FullSystem::~FullSystem()
@@ -431,6 +434,7 @@ namespace ldso
         return Vec4(achievedRes[0], flowVecs[0], flowVecs[1], flowVecs[2]);
     }
 
+    // TODO
     void FullSystem::blockUntilMappingIsFinished()
     {
         {
@@ -446,14 +450,14 @@ namespace ldso
 
         mappingThread.join();
 
-        if (setting_enableLoopClosing)
-        {
-            loopClosing->SetFinish(true);
-            if (globalMap->NumFrames() > 4)
-            {
-                globalMap->lastOptimizeAllKFs();
-            }
-        }
+        // if (setting_enableLoopClosing)
+        // {
+        //     loopClosing->SetFinish(true);
+        //     if (globalMap->NumFrames() > 4)
+        //     {
+        //         globalMap->lastOptimizeAllKFs();
+        //     }
+        // }
 
         // Update world points in case optimization hasn't run (with all keyframes)
         // It would maybe be better if the 3d points would always be updated as soon
@@ -658,7 +662,7 @@ namespace ldso
         if (setting_enableLoopClosing)
         {
             sendMarginalizedKeyFrame(frame);
-            loopClosing->InsertKeyFrame(frame);
+            // loopClosing->InsertKeyFrame(frame);
         }
         LOG(INFO) << "make keyframe done" << endl;
     }
@@ -2138,10 +2142,17 @@ namespace ldso
         kf_msg.frame.time_stamp = kf->timeStamp;
         kf_msg.frame.id = kf->id;
         kf_msg.frame.kf_id = kf->kfId;
+        
+        kf_msg.frame_hessian.frame_id = kf->frameHessian->frameID;
+
+        kf_msg.frame.tcw_opti.data.resize(16);
+        memcpy(kf_msg.frame.tcw_opti.data.data(), kf->getPoseOpti().matrix().data(), sizeof(double) * 16);
+        // cout << kf->getPoseOpti().matrix() << endl;
+
 
         for (auto &feat : kf->features)
         {
-            FeaturePoint fp;
+            ldso::FeaturePoint fp;
             fp.status = feat->status;
             fp.angle = feat->angle;
             fp.score = feat->score;
@@ -2151,7 +2162,7 @@ namespace ldso
             fp.position_y = feat->uv[1];
             fp.invD = feat->invD;
             memcpy(fp.descriptor.data(), feat->descriptor, sizeof(uchar) * 32);
-            Point3D p3d;
+            ldso::Point3D p3d;
             if (feat->point != nullptr)
             {
                 p3d.id = feat->point->id;
@@ -2159,6 +2170,37 @@ namespace ldso
                 p3d.mWorldPos.x = feat->point->mWorldPos[0];
                 p3d.mWorldPos.y = feat->point->mWorldPos[1];
                 p3d.mWorldPos.z = feat->point->mWorldPos[2];
+
+                ldso::PointHessianData point_hessian;
+                int i = 0;
+                for (auto & p : feat->point->mpPH->lastResiduals)
+                {
+                    ldso::PointFrameResidualData residual;
+                    residual.state_state = p.first->state_state;
+                    residual.frame_hessian.time_stamp = p.first->target.lock()->frame->timeStamp;
+                    residual.frame_hessian.frame_id = p.first->target.lock()->frameID;
+                    residual.centerProjectedTo.x = p.first->centerProjectedTo[0];
+                    residual.centerProjectedTo.y = p.first->centerProjectedTo[1];
+                    residual.centerProjectedTo.z = p.first->centerProjectedTo[2];
+                    point_hessian.residuals[i] = residual;
+                    point_hessian.res_state[i] = p.second;
+                    ++i;
+                }
+                p3d.point_hessian = point_hessian;
+
+                if (feat->point->mHostFeature.lock() && feat->point->mHostFeature.lock()->host.lock())
+                {
+                    auto tcw_opti = feat->point->mHostFeature.lock()->host.lock()->getPoseOpti();
+                    p3d.host_feat_u = feat->point->mHostFeature.lock()->uv[0];
+                    p3d.host_feat_v = feat->point->mHostFeature.lock()->uv[1];
+                    memcpy(p3d.hostfeat_hostframe_tcw_opti.data.data(), tcw_opti.matrix().data(), sizeof(double) * 16);
+                }
+                else
+                {
+                    p3d.host_feat_u = -1;
+                    p3d.host_feat_v = -1;
+                }
+
                 fp.point = p3d;
             }
             else
@@ -2168,7 +2210,7 @@ namespace ldso
 
         for (auto &e : kf->poseRel)
         {
-            RelPose rel_pose;
+            ldso::RelPose rel_pose;
             rel_pose.frame.id = e.first->id;
             rel_pose.frame.kf_id = e.first->kfId;
             rel_pose.frame.time_stamp = e.first->timeStamp;
@@ -2178,7 +2220,7 @@ namespace ldso
             kf_msg.rel_poses.emplace_back(rel_pose);
         }
 
-        CamInfo cam_info;
+        ldso::CamInfo cam_info;
         cam_info.fx = Hcalib->fx;
         cam_info.fy = Hcalib->fy;
         cam_info.cx = Hcalib->cx;
