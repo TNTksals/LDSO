@@ -681,7 +681,7 @@ namespace ldso
             {
                 shared_ptr<KeyFrameDisplay> kfd = shared_ptr<KeyFrameDisplay>(new KeyFrameDisplay());
                 keyframesByKFID[fr->kfId] = kfd;
-                keyframes.push_back(kfd);
+                keyframes.emplace_back(kfd);
             }
             else
             {
@@ -690,7 +690,7 @@ namespace ldso
                 keyframesByKFID[fr->kfId]->setFromKF(fr->frameHessian, HCalib);
             else
                 keyframesByKFID[fr->kfId]->setFromF(fr, HCalib);
-            activeKFIDs.push_back(fr->kfId);
+            activeKFIDs.emplace_back(fr->kfId);
         }
     }
 
@@ -718,7 +718,7 @@ namespace ldso
         unique_lock<mutex> lk(model3DMutex);
         struct timeval time_now;
         gettimeofday(&time_now, NULL);
-        lastNTrackingMs.push_back(
+        lastNTrackingMs.emplace_back(
             ((time_now.tv_sec - last_track.tv_sec) * 1000.0f + (time_now.tv_usec - last_track.tv_usec) / 1000.0f));
         if (lastNTrackingMs.size() > 10)
             lastNTrackingMs.pop_front();
@@ -726,7 +726,7 @@ namespace ldso
         last_track = time_now;
         if (currentCam)
             currentCam->setFromF(frame, HCalib);
-        allFramePoses.push_back(frame);
+        allFramePoses.emplace_back(frame);
 
         if (frame->frameHessian)
         {

@@ -77,7 +77,7 @@ namespace ldso
                             // this is an candidate
                             int realX = gx * gridsize + x, realY = gy * gridsize + y;
                             float s = ShiTomasiScore(frame, realX, realY);
-                            candidate.push_back(pair<int, float>(idx, s));
+                            candidate.emplace_back(pair<int, float>(idx, s));
                             if (s > maxScore)
                             {
                                 maxScore = s;
@@ -97,7 +97,7 @@ namespace ldso
                     int realX = gx * gridsize + x, realY = gy * gridsize + y;
                     shared_ptr<Feature> feat(new Feature(realX, realY, frame));
                     feat->score = p.second;
-                    frame->features.push_back(feat);
+                    frame->features.emplace_back(feat);
                     picked++;
 
                     if (picked > (nfeatInGrid))
@@ -115,7 +115,7 @@ namespace ldso
             if (feat->score > scoreTH)
             {
                 feat->isCorner = true;
-                corners.push_back(feat);
+                corners.emplace_back(feat);
             }
         }
 
