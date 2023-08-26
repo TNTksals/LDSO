@@ -25,14 +25,14 @@
 
 #include <ros/ros.h>
 
+#include "ldso/CameraData.h"
 #include "ldso/FrameHessianData.h"
 #include "ldso/PointFrameResidualData.h"
 #include "ldso/PointHessianData.h"
-#include "ldso/CamInfo.h"
-#include "ldso/Point3D.h"
-#include "ldso/FeaturePoint.h"
-#include "ldso/FrameInfo.h"
-#include "ldso/RelPose.h"
+#include "ldso/PointData.h"
+#include "ldso/FeatureData.h"
+#include "ldso/FrameData.h"
+#include "ldso/RelPoseData.h"
 #include "ldso/KeyFrame.h"
 
 using namespace std;
@@ -211,7 +211,6 @@ namespace ldso
 
     private:
         shared_ptr<PangolinDSOViewer> viewer = nullptr;
-
 
     };
 

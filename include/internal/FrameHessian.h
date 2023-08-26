@@ -33,7 +33,7 @@ namespace ldso
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            FrameHessian() {}
+            FrameHessian() = default;
 
             FrameHessian(shared_ptr<Frame> frame)
             {

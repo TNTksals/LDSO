@@ -26,7 +26,7 @@ namespace ldso
             // create the point hessian from immature point
             PointHessian(shared_ptr<ImmaturePoint> rawPoint);
 
-            PointHessian() {}
+            PointHessian() = default;
 
             inline void setIdepth(float idepth)
             {

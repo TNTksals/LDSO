@@ -2,13 +2,14 @@
 #include "Frame.h"
 #include "Point.h"
 
+#include "ldso/CameraData.h"
 #include "ldso/FrameHessianData.h"
 #include "ldso/PointFrameResidualData.h"
 #include "ldso/PointHessianData.h"
-#include "ldso/Point3D.h"
-#include "ldso/FeaturePoint.h"
-#include "ldso/FrameInfo.h"
-#include "ldso/RelPose.h"
+#include "ldso/PointData.h"
+#include "ldso/FeatureData.h"
+#include "ldso/FrameData.h"
+#include "ldso/RelPoseData.h"
 #include "ldso/KeyFrame.h"
 
 #include "frontend/FullSystem.h"
@@ -640,6 +641,7 @@ namespace ldso
             }
         }
 
+        // TODO
         // visualization
         if (viewer)
             viewer->publishKeyframes(frames, false, Hcalib->mpCH);
@@ -2142,38 +2144,37 @@ namespace ldso
         kf_msg.frame.time_stamp = kf->timeStamp;
         kf_msg.frame.id = kf->id;
         kf_msg.frame.kf_id = kf->kfId;
-        
-        kf_msg.frame_hessian.frame_id = kf->frameHessian->frameID;
-
         kf_msg.frame.tcw_opti.data.resize(16);
         memcpy(kf_msg.frame.tcw_opti.data.data(), kf->getPoseOpti().matrix().data(), sizeof(double) * 16);
-        // cout << kf->getPoseOpti().matrix() << endl;
 
+        kf_msg.frame_hessian.frame_id = kf->frameHessian->frameID;
 
         for (auto &feat : kf->features)
         {
-            ldso::FeaturePoint fp;
-            fp.status = feat->status;
-            fp.angle = feat->angle;
-            fp.score = feat->score;
-            fp.isCorner = feat->isCorner;
-            fp.level = feat->level;
-            fp.position_x = feat->uv[0];
-            fp.position_y = feat->uv[1];
-            fp.invD = feat->invD;
-            memcpy(fp.descriptor.data(), feat->descriptor, sizeof(uchar) * 32);
-            ldso::Point3D p3d;
+            ldso::FeatureData fd;
+            fd.status = feat->status;
+            fd.angle = feat->angle;
+            fd.score = feat->score;
+            fd.isCorner = feat->isCorner;
+            fd.level = feat->level;
+            fd.position_x = feat->uv[0];
+            fd.position_y = feat->uv[1];
+            fd.invD = feat->invD;
+            memcpy(fd.descriptor.data(), feat->descriptor, sizeof(uchar) * 32);
+
+            ldso::PointData pd;
             if (feat->point != nullptr)
             {
-                p3d.id = feat->point->id;
-                p3d.status = feat->point->status;
-                p3d.mWorldPos.x = feat->point->mWorldPos[0];
-                p3d.mWorldPos.y = feat->point->mWorldPos[1];
-                p3d.mWorldPos.z = feat->point->mWorldPos[2];
+                shared_ptr<Point> point = feat->point;
+                pd.id = point->id;
+                pd.status = point->status;
+                pd.mWorldPos.x = point->mWorldPos[0];
+                pd.mWorldPos.y = point->mWorldPos[1];
+                pd.mWorldPos.z = point->mWorldPos[2];
 
                 ldso::PointHessianData point_hessian;
                 int i = 0;
-                for (auto & p : feat->point->mpPH->lastResiduals)
+                for (auto &p : feat->point->mpPH->lastResiduals)
                 {
                     ldso::PointFrameResidualData residual;
                     residual.state_state = p.first->state_state;
@@ -2186,50 +2187,54 @@ namespace ldso
                     point_hessian.res_state[i] = p.second;
                     ++i;
                 }
-                p3d.point_hessian = point_hessian;
+                pd.point_hessian = point_hessian;
 
-                if (feat->point->mHostFeature.lock() && feat->point->mHostFeature.lock()->host.lock())
+                pd.host_feat_u = -1;
+                pd.host_feat_v = -1;   
+                shared_ptr<Feature> host_feat = feat->point->mHostFeature.lock();
+                if (host_feat != nullptr)
                 {
-                    auto tcw_opti = feat->point->mHostFeature.lock()->host.lock()->getPoseOpti();
-                    p3d.host_feat_u = feat->point->mHostFeature.lock()->uv[0];
-                    p3d.host_feat_v = feat->point->mHostFeature.lock()->uv[1];
-                    memcpy(p3d.hostfeat_hostframe_tcw_opti.data.data(), tcw_opti.matrix().data(), sizeof(double) * 16);
+                    shared_ptr<Frame> host_feat_host_frame = host_feat->host.lock();
+                    if (host_feat_host_frame != nullptr)
+                    {
+                        pd.host_feat_u = host_feat->uv[0];
+                        pd.host_feat_v = host_feat->uv[1];
+                        pd.host_feat_invD = host_feat->invD;
+                        pd.hostfeat_hostframe_timestamp = host_feat_host_frame->timeStamp;
+                        pd.hostfeat_hostframe_tcw_opti.data.resize(16);
+                        memcpy(pd.hostfeat_hostframe_tcw_opti.data.data(), host_feat_host_frame->getPoseOpti().matrix().data(), sizeof(double) * 16);
+                    }
                 }
-                else
-                {
-                    p3d.host_feat_u = -1;
-                    p3d.host_feat_v = -1;
-                }
-
-                fp.point = p3d;
             }
             else
-                p3d.id = -1;
-            kf_msg.frame.features.emplace_back(fp);
+                pd.id = -1;
+            fd.point = pd;
+
+            kf_msg.frame.features.emplace_back(fd);
         }
 
         for (auto &e : kf->poseRel)
         {
-            ldso::RelPose rel_pose;
+            ldso::RelPoseData rel_pose;
             rel_pose.frame.id = e.first->id;
             rel_pose.frame.kf_id = e.first->kfId;
             rel_pose.frame.time_stamp = e.first->timeStamp;
             rel_pose.pose.data.resize(sizeof(e.second));
-            memcpy(rel_pose.pose.data.data(), (int8_t*)&e.second, sizeof(e.second));
+            memcpy(rel_pose.pose.data.data(), (int8_t *)&e.second, sizeof(e.second));
             // cout << e.second.Tcr.matrix() << " " << e.second.info << endl;
             kf_msg.rel_poses.emplace_back(rel_pose);
         }
 
-        ldso::CamInfo cam_info;
-        cam_info.fx = Hcalib->fx;
-        cam_info.fy = Hcalib->fy;
-        cam_info.cx = Hcalib->cx;
-        cam_info.cy = Hcalib->cy;
-        cam_info.value_scaledf.data.resize(4);
-        memcpy(cam_info.value_scaledf.data.data(), Hcalib->mpCH->value_scaledf.data(), sizeof(float) * 4);
-        cam_info.value_scaledi.data.resize(4);
-        memcpy(cam_info.value_scaledi.data.data(), Hcalib->mpCH->value_scaledi.data(), sizeof(float) * 4);
-        kf_msg.cam_info = cam_info;
+        ldso::CameraData cam_data;
+        cam_data.fx = Hcalib->fx;
+        cam_data.fy = Hcalib->fy;
+        cam_data.cx = Hcalib->cx;
+        cam_data.cy = Hcalib->cy;
+        cam_data.value_scaledf.data.resize(4);
+        memcpy(cam_data.value_scaledf.data.data(), Hcalib->mpCH->value_scaledf.data(), sizeof(float) * 4);
+        cam_data.value_scaledi.data.resize(4);
+        memcpy(cam_data.value_scaledi.data.data(), Hcalib->mpCH->value_scaledi.data(), sizeof(float) * 4);
+        kf_msg.cam_info = cam_data;
         // for (int i = 0; i < 4; ++i)
         //     cout << Hcalib->mpCH->value_scaledf[i] << " ";
         // cout << endl;

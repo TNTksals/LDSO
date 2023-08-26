@@ -52,7 +52,9 @@ namespace ldso
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
-            PointFrameResidual() : J(new RawResidualJacobian) {}
+            PointFrameResidual() = default;
+
+            // PointFrameResidual() : J(new RawResidualJacobian) {}
 
             PointFrameResidual(shared_ptr<PointHessian> point_, shared_ptr<FrameHessian> host_,
                                shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian)

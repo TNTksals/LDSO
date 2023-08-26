@@ -67,6 +67,7 @@ namespace ldso
         PointStatus status = PointStatus::ACTIVE; // status of this point
         Vec3 mWorldPos = Vec3::Zero();            // pos in world
         weak_ptr<Feature> mHostFeature;           // the hosting feature creating this point
+        shared_ptr<Feature> host_feature = nullptr;
 
         // internal structures
         shared_ptr<internal::PointHessian> mpPH; // point with hessians

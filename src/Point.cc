@@ -51,6 +51,20 @@ namespace ldso
         }
     }
 
+    // void Point::ComputeWorldPos()
+    // {
+    //     shared_ptr<Feature> feat = this->host_feature;
+    //     if (feat)
+    //     {
+    //         shared_ptr<Frame> frame = feat->host_frame;
+    //         if (!frame)
+    //             return;
+    //         Sim3 Twc = frame->getPoseOpti().inverse();
+    //         Vec3 Kip = 1.0 / feat->invD * Vec3(fxiG[0] * feat->uv[0] + cxiG[0], fyiG[0] * feat->uv[1] + cyiG[0], 1);
+    //         mWorldPos = Twc * Kip;
+    //     }
+    // }
+
     void Point::save(ofstream &fout)
     {
         fout.write((char *)&id, sizeof(id));

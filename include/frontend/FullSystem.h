@@ -8,12 +8,6 @@
 #include <thread>
 
 #include <ros/ros.h>
-#include "ldso/CamInfo.h"
-#include "ldso/Point3D.h"
-#include "ldso/FeaturePoint.h"
-#include "ldso/FrameInfo.h"
-#include "ldso/RelPose.h"
-#include "ldso/KeyFrame.h"
 
 #include "Frame.h"
 #include "Point.h"

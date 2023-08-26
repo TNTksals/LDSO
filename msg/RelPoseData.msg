@@ -1,3 +1,3 @@
 # Post relative to covisible keyframes
-FrameInfo frame
+FrameData frame
 std_msgs/ByteMultiArray pose

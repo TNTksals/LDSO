@@ -90,6 +90,8 @@ namespace ldso
         FeatureStatus status = IMMATURE; // status of this feature
 
         weak_ptr<Frame> host; // the host frame
+        shared_ptr<Frame> host_frame; // used on server  
+        // Sim3 host_frame_pose; // used on server  
 
         Vec2f uv = Vec2f(0, 0);            // pixel position in image
         float invD = -1;                   // inverse depth, invalid if < 0, computed by dso's sliding window

@@ -48,14 +48,14 @@ find_package(catkin REQUIRED COMPONENTS
 
 add_message_files(
   FILES
-  CamInfo.msg
+  CameraData.msg
   FrameHessianData.msg
   PointFrameResidualData.msg
   PointHessianData.msg
-  Point3D.msg
-  FeaturePoint.msg
-  FrameInfo.msg
-  RelPose.msg
+  PointData.msg
+  FeatureData.msg
+  FrameData.msg
+  RelPoseData.msg
   KeyFrame.msg
 )
 
