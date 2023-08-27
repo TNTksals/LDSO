@@ -18,8 +18,6 @@ cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
 make -j$NUM_PROC
 
 cd "$BASEDIR"
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
-make -j$NUM_PROC
+catkin build ldso -DCMAKE_BUILD_TYPE=$BUILD_TYPE -j$NUM_PROC
+
 
