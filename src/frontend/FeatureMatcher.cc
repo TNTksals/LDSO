@@ -64,7 +64,7 @@ namespace ldso
 
             if (min_dist < TH_LOW)
             {
-                matches.push_back(Match(i, min_dist_index, min_dist));
+                matches.emplace_back(Match(i, min_dist_index, min_dist));
             }
         }
 
@@ -122,7 +122,7 @@ namespace ldso
                             m.index1 = frame1->bowIdx[idx1];
                             m.index2 = bestIdx2;
                             m.dist = bestDist1;
-                            matches.push_back(m);
+                            matches.emplace_back(m);
                             nmatches++;
                         }
                     }
