@@ -661,11 +661,10 @@ namespace ldso
 
         // add current kf into map and detect loops
         globalMap->AddKeyFrame(fh->frame);
-        if (setting_enableLoopClosing)
-        {
-            sendMarginalizedKeyFrame(frame);
-            // loopClosing->InsertKeyFrame(frame);
-        }
+        // if (setting_enableLoopClosing)
+        // {
+        //     loopClosing->InsertKeyFrame(frame);
+        // }
         LOG(INFO) << "make keyframe done" << endl;
     }
 
@@ -716,6 +715,9 @@ namespace ldso
                 }
             }
         }
+
+        // send marginalized frame to the server
+        sendMarginalizedKeyFrame(frame);
 
         // remove this frame from recorded frames
         frame->ReleaseAll(); // release all things in this frame
