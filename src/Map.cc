@@ -68,7 +68,7 @@ namespace ldso
         return true;
     }
 
-    void Map::UpdateAllWorldPoints()
+    void Map::UpdateAllWorldPoints(int flag)
     {
         unique_lock<mutex> lock(mutexPoseGraph);
         for (shared_ptr<Frame> frame : frames)
@@ -77,7 +77,10 @@ namespace ldso
             {
                 if (feat->point)
                 {
-                    feat->point->ComputeWorldPos();
+                    if (flag == 0)
+                        feat->point->ComputeWorldPos(0);
+                    else
+                        feat->point->ComputeWorldPos(1);
                 }
             }
         }
@@ -169,7 +172,7 @@ namespace ldso
             {
                 if (feat->point)
                 {
-                    feat->point->ComputeWorldPos();
+                    feat->point->ComputeWorldPos(1);
                 }
             }
         }

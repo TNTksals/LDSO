@@ -53,8 +53,9 @@ namespace ldso
 
         /**
          * compute 3D position in world
+         * when flag = 0, used in agent; flag = 1, used in server
          */
-        void ComputeWorldPos();
+        void ComputeWorldPos(int flag);
 
         // save and load
         void save(ofstream &fout);

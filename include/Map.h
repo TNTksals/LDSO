@@ -53,7 +53,7 @@ namespace ldso
         void lastOptimizeAllKFs();
 
         /// update the cached 3d position of all points.
-        void UpdateAllWorldPoints();
+        void UpdateAllWorldPoints(int flag);
 
         /**
          * get number of frames stored in global map
