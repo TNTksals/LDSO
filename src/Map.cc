@@ -2,6 +2,7 @@
 #include "Feature.h"
 
 #include "frontend/FullSystem.h"
+#include "backend/SystemServer.h"
 #include "internal/GlobalCalib.h"
 #include "internal/FrameHessian.h"
 #include "internal/PointHessian.h"
@@ -180,8 +181,11 @@ namespace ldso
             latestOptimizedKfId = currentKF->kfId;
         }
 
-        if (fullsystem)
-            fullsystem->RefreshGUI();
+        // if (fullsystem)
+        //     fullsystem->RefreshGUI();
+
+        if (system_server)
+            system_server->RefreshGUI();
     }
 
 }

@@ -28,7 +28,7 @@ namespace ldso
             {
                 npoints++;
             }
-            else if (feat->status == Feature::FeatureStatus::IMMATURE && feat->ip)
+            else if (feat->status == Feature::FeatureStatus::IMMATURE && (feat->ip || feat->is_ip))
             {
                 npoints++;
             }

@@ -1,13 +1,16 @@
 #pragma once
+#ifndef LDSO_SYSTEM_SERVER_H_
+#define LDSO_SYSTEM_SERVER_H_
 
 #include <deque>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <iomanip>
 
-#include <boost/thread.hpp>
-#include <queue>
-#include <condition_variable>
+// #include <boost/thread.hpp>
+// #include <queue>
+// #include <condition_variable>
 #include <glog/logging.h>
 
 #include "Frame.h"
@@ -16,11 +19,10 @@
 #include "Camera.h"
 #include "Map.h"
 
-#include "frontend/FullSystem.h"
+#include "frontend/DSOViewer.h"
 #include "frontend/LoopClosing.h"
 
 #include <opencv2/features2d/features2d.hpp>
-#include <iomanip>
 #include <opencv2/highgui/highgui.hpp>
 
 #include <ros/ros.h>
@@ -68,9 +70,17 @@ namespace ldso
             return frames;
         }
 
+        void RefreshGUI()
+        {
+            if (viewer)
+                viewer->refreshAll();
+        }
+
     private:
         // 关键帧信息回调函数
-        void keyframeCallback(const KeyFrame &kf_msg);
+        void keyframeCallback(const ldso::KeyFrame &kf_msg);
+
+        void deliverKeyFrame(shared_ptr<Frame> frame);
 
         // // 回环检测线程函数
         // void loopClosingThreadFunc()
@@ -215,3 +225,5 @@ namespace ldso
     };
 
 } // namespace ldso
+
+#endif
