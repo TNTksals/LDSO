@@ -106,6 +106,7 @@ namespace ldso
 
         // internal structures for optimizing immature points
         shared_ptr<internal::ImmaturePoint> ip = nullptr; // the immature point
+        bool is_ip = false;                               // used on server
     };
 }
 

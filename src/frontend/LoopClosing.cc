@@ -337,12 +337,11 @@ namespace ldso
                 if (feat->status == Feature::FeatureStatus::VALID &&
                     feat->point->status == Point::PointStatus::ACTIVE)
                 {
-
                     shared_ptr<PointHessian> ph = feat->point->mpPH;
-                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::IN)
+                    if (ph->lastResiduals[0].first != nullptr && ph->lastResiduals[0].second == ResState::IN)
                     {
                         shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
-                        if (r->target_id != currentKF->frameHessian->frameID)
+                        if (r->target_kf_id != currentKF->frameHessian->frameID)
                             continue;
 
                         int u = r->centerProjectedTo[0] + 0.5f;

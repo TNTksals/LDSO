@@ -2140,15 +2140,21 @@ namespace ldso
     {
         ldso::KeyFrame kf_msg;
 
+        // ============================= Frame info ============================= //
         kf_msg.header.stamp = ros::Time::now();
         kf_msg.frame.time_stamp = kf->timeStamp;
         kf_msg.frame.id = kf->id;
         kf_msg.frame.kf_id = kf->kfId;
+        kf_msg.frame.tcw.data.resize(16);
+        memcpy(kf_msg.frame.tcw.data.data(), kf->getPose().matrix().data(), sizeof(double) * 16);
         kf_msg.frame.tcw_opti.data.resize(16);
         memcpy(kf_msg.frame.tcw_opti.data.data(), kf->getPoseOpti().matrix().data(), sizeof(double) * 16);
 
         kf_msg.frame_hessian.frame_id = kf->frameHessian->frameID;
+        kf_msg.frame_hessian.pre_twc.data.resize(16);
+        memcpy(kf_msg.frame_hessian.pre_twc.data.data(), kf->frameHessian->PRE_camToWorld.matrix().data(), sizeof(double) * 16);
 
+        // =========================== Features(Inverse depth, ORB descriptors .etc) =========================== //
         for (auto &feat : kf->features)
         {
             ldso::FeatureData fd;
@@ -2163,6 +2169,7 @@ namespace ldso
             memcpy(fd.descriptor.data(), feat->descriptor, sizeof(uchar) * 32);
 
             ldso::PointData pd;
+            pd.id = -1;
             if (feat->point != nullptr)
             {
                 shared_ptr<Point> point = feat->point;
@@ -2172,25 +2179,34 @@ namespace ldso
                 pd.mWorldPos.y = point->mWorldPos[1];
                 pd.mWorldPos.z = point->mWorldPos[2];
 
-                ldso::PointHessianData point_hessian;
-                int i = 0;
-                for (auto &p : feat->point->mpPH->lastResiduals)
+                pd.point_hessian.u = pd.point_hessian.v = -1;
+                if (point->mpPH)
                 {
-                    ldso::PointFrameResidualData residual;
-                    residual.state_state = p.first->state_state;
-                    residual.frame_hessian.time_stamp = p.first->target.lock()->frame->timeStamp;
-                    residual.frame_hessian.frame_id = p.first->target.lock()->frameID;
-                    residual.centerProjectedTo.x = p.first->centerProjectedTo[0];
-                    residual.centerProjectedTo.y = p.first->centerProjectedTo[1];
-                    residual.centerProjectedTo.z = p.first->centerProjectedTo[2];
-                    point_hessian.residuals[i] = residual;
-                    point_hessian.res_state[i] = p.second;
-                    ++i;
+                    ldso::PointHessianData point_hessian;
+                    point_hessian.u = point->mpPH->u;
+                    point_hessian.v = point->mpPH->v;
+                    point_hessian.idepth_scaled = point->mpPH->idepth_scaled;
+                    point_hessian.idepth_hessian = point->mpPH->idepth_hessian;
+                    point_hessian.max_rel_baseline = point->mpPH->maxRelBaseline;
+                    memcpy(point_hessian.color.data(), point->mpPH->color, sizeof(float) * 8);
+                    for (int i = 0; i < 2; ++i)
+                    {
+                        auto p = point->mpPH->lastResiduals[i];
+                        point_hessian.res_state[i] = -1;
+                        if (p.first != nullptr)
+                        {
+                            point_hessian.residuals[i].state_state = p.first->state_state;
+                            point_hessian.residuals[i].frame_hessian.frame_id = p.first->target.lock() ? p.first->target.lock()->frameID : -1;
+                            point_hessian.residuals[i].centerProjectedTo.x = p.first->centerProjectedTo[0];
+                            point_hessian.residuals[i].centerProjectedTo.y = p.first->centerProjectedTo[1];
+                            point_hessian.residuals[i].centerProjectedTo.z = p.first->centerProjectedTo[2];
+                            point_hessian.res_state[i] = p.second;
+                        }
+                    }
+                    pd.point_hessian = point_hessian;
                 }
-                pd.point_hessian = point_hessian;
 
-                pd.host_feat_u = -1;
-                pd.host_feat_v = -1;   
+                pd.host_feat_u = pd.host_feat_v = -1;
                 shared_ptr<Feature> host_feat = feat->point->mHostFeature.lock();
                 if (host_feat != nullptr)
                 {
@@ -2206,25 +2222,31 @@ namespace ldso
                     }
                 }
             }
-            else
-                pd.id = -1;
-            fd.point = pd;
 
+            fd.is_ip = false;
+            if (feat->ip != nullptr)
+                fd.is_ip = true;
+
+            fd.point = pd;
             kf_msg.frame.features.emplace_back(fd);
         }
 
+        // ============================ Pose relative to covisible keyframes ============================ //
         for (auto &e : kf->poseRel)
         {
             ldso::RelPoseData rel_pose;
             rel_pose.frame.id = e.first->id;
             rel_pose.frame.kf_id = e.first->kfId;
             rel_pose.frame.time_stamp = e.first->timeStamp;
-            rel_pose.pose.data.resize(sizeof(e.second));
-            memcpy(rel_pose.pose.data.data(), (int8_t *)&e.second, sizeof(e.second));
+            rel_pose.frame.tcw_opti.data.resize(16);
+            memcpy(rel_pose.frame.tcw_opti.data.data(), e.first->getPoseOpti().matrix().data(), sizeof(double) * 16);
+            rel_pose.pose.data.resize(sizeof(Frame::RELPOSE));
+            memcpy(rel_pose.pose.data.data(), (int8_t *)&e.second, sizeof(Frame::RELPOSE));
             // cout << e.second.Tcr.matrix() << " " << e.second.info << endl;
             kf_msg.rel_poses.emplace_back(rel_pose);
         }
 
+        // ============================= Camera calibration parameters ============================= //
         ldso::CameraData cam_data;
         cam_data.fx = Hcalib->fx;
         cam_data.fy = Hcalib->fy;

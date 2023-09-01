@@ -9,4 +9,5 @@ float32 position_y   # y position
 PointData point   # corresponding 3D point
 float32 invD   # inverse depth
 uint8[32] descriptor   # ORB descriptors
+bool is_ip   # the immature point
     

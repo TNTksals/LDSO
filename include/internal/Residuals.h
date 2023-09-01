@@ -54,8 +54,6 @@ namespace ldso
 
             PointFrameResidual() = default;
 
-            // PointFrameResidual() : J(new RawResidualJacobian) {}
-
             PointFrameResidual(shared_ptr<PointHessian> point_, shared_ptr<FrameHessian> host_,
                                shared_ptr<FrameHessian> target_) : J(new RawResidualJacobian)
             {
@@ -64,8 +62,6 @@ namespace ldso
                 target = target_;
                 resetOOB();
             }
-
-            PointFrameResidual(int target_id) : target_id(target_id), J(new RawResidualJacobian) {}
 
             virtual ~PointFrameResidual() = default;
 
@@ -121,7 +117,7 @@ namespace ldso
             weak_ptr<PointHessian> point;
             weak_ptr<FrameHessian> host;
             weak_ptr<FrameHessian> target;
-            int target_id;
+            int target_kf_id = -1; // used on server
             shared_ptr<RawResidualJacobian> J = nullptr;
 
             bool isNew = true;
