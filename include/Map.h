@@ -49,10 +49,15 @@ namespace ldso
          */
         bool OptimizeALLKFs();
 
-        // optimize pose graph on all kfs after odometry loop is done
+        /**
+         * optimize pose graph on all kfs after odometry loop is done
+        */
         void lastOptimizeAllKFs();
 
-        /// update the cached 3d position of all points.
+        /**
+         * update the cached 3d position of all points.
+         * @param flag 0: used on agent, 1: used on server.
+        */
         void UpdateAllWorldPoints(int flag);
 
         /**
