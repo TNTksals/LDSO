@@ -2181,28 +2181,32 @@ namespace ldso
                 pd.mWorldPos.y = point->mWorldPos[1];
                 pd.mWorldPos.z = point->mWorldPos[2];
 
-                ldso::PointHessianData point_hessian;
-                point_hessian.u = point->mpPH->u;
-                point_hessian.v = point->mpPH->v;
-                point_hessian.idepth_scaled = point->mpPH->idepth_scaled;
-                point_hessian.idepth_hessian = point->mpPH->idepth_hessian;
-                point_hessian.max_rel_baseline = point->mpPH->maxRelBaseline;
-                memcpy(point_hessian.color.data(), point->mpPH->color, sizeof(float) * 8);
-                for (int i = 0; i < 2; ++i)
+                pd.point_hessian.u = pd.point_hessian.v = -1;
+                if (point->mpPH)
                 {
-                    auto p = point->mpPH->lastResiduals[i];
-                    point_hessian.res_state[i] = -1;
-                    if (p.first != nullptr)
+                    ldso::PointHessianData point_hessian;
+                    point_hessian.u = point->mpPH->u;
+                    point_hessian.v = point->mpPH->v;
+                    point_hessian.idepth_scaled = point->mpPH->idepth_scaled;
+                    point_hessian.idepth_hessian = point->mpPH->idepth_hessian;
+                    point_hessian.max_rel_baseline = point->mpPH->maxRelBaseline;
+                    memcpy(point_hessian.color.data(), point->mpPH->color, sizeof(float) * 8);
+                    for (int i = 0; i < 2; ++i)
                     {
-                        point_hessian.point_frame_residual[i].state_state = p.first->state_state;
-                        point_hessian.point_frame_residual[i].frame_hessian.frame_id = p.first->target.lock() ? p.first->target.lock()->frameID : -1;
-                        point_hessian.point_frame_residual[i].centerProjectedTo.x = p.first->centerProjectedTo[0];
-                        point_hessian.point_frame_residual[i].centerProjectedTo.y = p.first->centerProjectedTo[1];
-                        point_hessian.point_frame_residual[i].centerProjectedTo.z = p.first->centerProjectedTo[2];
-                        point_hessian.res_state[i] = p.second;
+                        auto p = point->mpPH->lastResiduals[i];
+                        point_hessian.res_state[i] = -1;
+                        if (p.first != nullptr)
+                        {
+                            point_hessian.residuals[i].state_state = p.first->state_state;
+                            point_hessian.residuals[i].frame_hessian.frame_id = p.first->target.lock() ? p.first->target.lock()->frameID : -1;
+                            point_hessian.residuals[i].centerProjectedTo.x = p.first->centerProjectedTo[0];
+                            point_hessian.residuals[i].centerProjectedTo.y = p.first->centerProjectedTo[1];
+                            point_hessian.residuals[i].centerProjectedTo.z = p.first->centerProjectedTo[2];
+                            point_hessian.res_state[i] = p.second;
+                        }
                     }
+                    pd.point_hessian = point_hessian;
                 }
-                pd.point_hessian = point_hessian;
 
                 pd.host_feat_u = pd.host_feat_v = -1;
                 shared_ptr<Feature> host_feat = feat->point->mHostFeature.lock();

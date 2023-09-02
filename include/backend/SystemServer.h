@@ -11,6 +11,7 @@
 // #include <boost/thread.hpp>
 // #include <queue>
 // #include <condition_variable>
+#include <glog/logging.h>
 
 #include "Frame.h"
 #include "Point.h"

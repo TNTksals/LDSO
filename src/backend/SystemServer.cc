@@ -3,8 +3,6 @@
 #include "internal/GlobalCalib.h"
 #include "internal/GlobalFuncs.h"
 
-#include <glog/logging.h>
-
 using namespace ldso;
 using namespace ldso::internal;
 
@@ -79,26 +77,29 @@ namespace ldso
                 feat->point->mWorldPos = Vec3(fd.point.mWorldPos.x, fd.point.mWorldPos.y, fd.point.mWorldPos.z);
                 // ROS_INFO("grab point id: %ld.", feat->point->id);
 
-                feat->point->mpPH = std::make_shared<PointHessian>();
-                // feat->point->mpPH = std::shared_ptr<PointHessian>(new PointHessian());
-                feat->point->mpPH->u = fd.point.point_hessian.u;
-                feat->point->mpPH->v = fd.point.point_hessian.v;
-                feat->point->mpPH->idepth_scaled = fd.point.point_hessian.idepth_scaled;
-                feat->point->mpPH->idepth_hessian = fd.point.point_hessian.idepth_hessian;
-                feat->point->mpPH->maxRelBaseline = fd.point.point_hessian.max_rel_baseline;
-                memcpy(feat->point->mpPH->color, fd.point.point_hessian.color.data(), sizeof(float) * 8);
-                for (int i = 0; i < 2; ++i)
+                if (fd.point.point_hessian.u != -1 || fd.point.point_hessian.v != -1)
                 {
-                    if (fd.point.point_hessian.res_state[i] != -1)
+                    feat->point->mpPH = std::make_shared<PointHessian>();
+                    // feat->point->mpPH = std::shared_ptr<PointHessian>(new PointHessian());
+                    feat->point->mpPH->u = fd.point.point_hessian.u;
+                    feat->point->mpPH->v = fd.point.point_hessian.v;
+                    feat->point->mpPH->idepth_scaled = fd.point.point_hessian.idepth_scaled;
+                    feat->point->mpPH->idepth_hessian = fd.point.point_hessian.idepth_hessian;
+                    feat->point->mpPH->maxRelBaseline = fd.point.point_hessian.max_rel_baseline;
+                    memcpy(feat->point->mpPH->color, fd.point.point_hessian.color.data(), sizeof(float) * 8);
+                    for (int i = 0; i < 2; ++i)
                     {
-                        // feat->point->mpPH->lastResiduals[i].first = std::make_shared<PointFrameResidual>();
-                        feat->point->mpPH->lastResiduals[i].first = std::shared_ptr<PointFrameResidual>(new PointFrameResidual());
-                        feat->point->mpPH->lastResiduals[i].first->target_kf_id = fd.point.point_hessian.point_frame_residual[i].frame_hessian.frame_id;
-                        feat->point->mpPH->lastResiduals[i].first->state_state = static_cast<internal::ResState>(fd.point.point_hessian.point_frame_residual[i].state_state);
-                        feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[0] = fd.point.point_hessian.point_frame_residual[i].centerProjectedTo.x;
-                        feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[1] = fd.point.point_hessian.point_frame_residual[i].centerProjectedTo.y;
-                        feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[2] = fd.point.point_hessian.point_frame_residual[i].centerProjectedTo.z;
-                        feat->point->mpPH->lastResiduals[i].second = static_cast<internal::ResState>(fd.point.point_hessian.res_state[i]);
+                        if (fd.point.point_hessian.res_state[i] != -1)
+                        {
+                            // feat->point->mpPH->lastResiduals[i].first = std::make_shared<PointFrameResidual>();
+                            feat->point->mpPH->lastResiduals[i].first = std::shared_ptr<PointFrameResidual>(new PointFrameResidual());
+                            feat->point->mpPH->lastResiduals[i].first->target_kf_id = fd.point.point_hessian.residuals[i].frame_hessian.frame_id;
+                            feat->point->mpPH->lastResiduals[i].first->state_state = static_cast<internal::ResState>(fd.point.point_hessian.residuals[i].state_state);
+                            feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[0] = fd.point.point_hessian.residuals[i].centerProjectedTo.x;
+                            feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[1] = fd.point.point_hessian.residuals[i].centerProjectedTo.y;
+                            feat->point->mpPH->lastResiduals[i].first->centerProjectedTo[2] = fd.point.point_hessian.residuals[i].centerProjectedTo.z;
+                            feat->point->mpPH->lastResiduals[i].second = static_cast<internal::ResState>(fd.point.point_hessian.res_state[i]);
+                        }
                     }
                 }
                 // ROS_INFO("grab point hessian.");
@@ -154,7 +155,8 @@ namespace ldso
         // cout << endl;
         ROS_INFO("grab camera info.");
 
-        LOG(INFO) << "System server receved a new keyframe!" << endl;
+        ROS_INFO("successfully receved keyframe!");
+        // LOG << "System server receved a new keyframe!" << endl;
 
         deliverKeyFrame(frame);
     }
