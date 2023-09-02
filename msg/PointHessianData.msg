@@ -7,7 +7,7 @@ float32 idepth_hessian
 float32 max_rel_baseline
 
 # the last two residuals
-PointFrameResidualData[2] residuals 
+PointFrameResidualData[2] point_frame_residual
 int32[2] res_state
 
 float32[8] color   # colors in host frame
