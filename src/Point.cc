@@ -37,12 +37,12 @@ namespace ldso
         }
     }
 
-    void Point::ComputeWorldPos(int flag)
+    void Point::ComputeWorldPos()
     {
-        shared_ptr<Feature> feat = flag == 0 ? mHostFeature.lock() : this->host_feature;
+        shared_ptr<Feature> feat = mHostFeature.lock();
         if (feat)
         {
-            shared_ptr<Frame> frame = flag == 0 ? feat->host.lock() : feat->host_frame;
+            shared_ptr<Frame> frame = feat->host.lock();
             if (!frame)
                 return;
             Sim3 Twc = frame->getPoseOpti().inverse();

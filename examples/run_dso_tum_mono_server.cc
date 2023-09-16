@@ -342,43 +342,43 @@ int main(int argc, char *argv[])
     ros::init(argc, argv, "run_tmu_mono_server");
     ros::NodeHandle nh("~");
 
-    FLAGS_colorlogtostderr = true;
-    for (int i = 1; i < argc; i++)
-        parseArgument(argv[i]);
+    // FLAGS_colorlogtostderr = true;
+    // for (int i = 1; i < argc; i++)
+    //     parseArgument(argv[i]);
 
-    shared_ptr<ImageFolderReader> reader(
-        new ImageFolderReader(ImageFolderReader::TUM_MONO, source, calib, gammaCalib, vignette));
+    // shared_ptr<ImageFolderReader> reader(
+    //     new ImageFolderReader(ImageFolderReader::TUM_MONO, source, calib, gammaCalib, vignette));
 
-    reader->setGlobalCalibration();
+    // reader->setGlobalCalibration();
 
-    shared_ptr<ORBVocabulary> voc(new ORBVocabulary());
-    voc->load(vocPath);
+    // shared_ptr<ORBVocabulary> voc(new ORBVocabulary());
+    // voc->load(vocPath);
 
-    shared_ptr<SystemServer> system_server(new SystemServer(voc, nh));
+    // shared_ptr<SystemServer> system_server(new SystemServer(voc, nh));
 
-    shared_ptr<PangolinDSOViewer> viewer = nullptr;
-    if (!disableAllDisplay)
-    {
-        viewer = shared_ptr<PangolinDSOViewer>(new PangolinDSOViewer(wG[0], hG[0], false));
-        system_server->setViewer(viewer);
-    }
-    else
-    {
-        LOG(INFO) << "visualization is disabled!" << endl;
-    }
+    // shared_ptr<PangolinDSOViewer> viewer = nullptr;
+    // if (!disableAllDisplay)
+    // {
+    //     viewer = shared_ptr<PangolinDSOViewer>(new PangolinDSOViewer(wG[0], hG[0], false));
+    //     system_server->setViewer(viewer);
+    // }
+    // else
+    // {
+    //     LOG(INFO) << "visualization is disabled!" << endl;
+    // }
 
-    ROS_INFO("start receving keyframe...");
+    // ROS_INFO("start receving keyframe...");
 
-    std::thread runthread([&](){
-        ros::spin();
-    });
+    // std::thread runthread([&](){
+    //     ros::spin();
+    // });
 
-    if (viewer)
-        viewer->run(); // mac os should keep this in main thread.
+    // if (viewer)
+    //     viewer->run(); // mac os should keep this in main thread.
 
-    runthread.join();
+    // runthread.join();
 
-    viewer->saveAsPLYFile("./pointcloud.ply");
-    LOG(INFO) << "EXIT NOW!";
+    // viewer->saveAsPLYFile("./pointcloud.ply");
+    // LOG(INFO) << "EXIT NOW!";
     return 0;
 }

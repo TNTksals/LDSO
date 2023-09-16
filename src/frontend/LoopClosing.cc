@@ -5,7 +5,6 @@
 #include "frontend/LoopClosing.h"
 #include "frontend/FeatureMatcher.h"
 #include "frontend/FullSystem.h"
-#include "backend/SystemServer.h"
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
@@ -26,17 +25,7 @@ namespace ldso
                                                        coarseDistanceMap(fullsystem->GetDistanceMap()),
                                                        fullSystem(fullsystem)
     {
-        mainLoop = thread(&LoopClosing::Run, this);
-        idepthMap = new float[wG[0] * hG[0]];
-    }
 
-    LoopClosing::LoopClosing(SystemServer *system_server) : kfDB(new DBoW3::Database(*system_server->vocab)),
-                                                            voc(system_server->vocab),
-                                                            globalMap(system_server->globalMap),
-                                                            Hcalib(system_server->Hcalib->mpCH),
-                                                            coarseDistanceMap(system_server->GetDistanceMap()),
-                                                            system_server(system_server)
-    {
         mainLoop = thread(&LoopClosing::Run, this);
         idepthMap = new float[wG[0] * hG[0]];
     }
@@ -77,17 +66,13 @@ namespace ldso
 
                 allKF.emplace_back(currentKF);
             }
-            LOG(INFO) << "loop closing get a new keyframe: " << currentKF->kfId << endl;
 
             currentKF->ComputeBoW(voc);
-            LOG(INFO) << "current kf bow vec size: " << currentKF->bowVec.size() << endl;
             if (DetectLoop(currentKF))
             {
-                LOG(INFO) << "loop detected!" << endl;
                 bool mapIdle = globalMap->Idle();
                 if (CorrectLoop(Hcalib))
                 {
-                    LOG(INFO) << "loop corrected!" << endl;
                     // start a pose graph optimization
                     if (mapIdle)
                     {
@@ -101,9 +86,9 @@ namespace ldso
                         LOG(INFO) << "still need pose graph optimization!" << endl;
                         needPoseGraph = true;
                     }
-                    LOG(INFO) << "pose graph optimization finished!" << endl;
                 }
             }
+
             if (needPoseGraph && globalMap->Idle())
             {
                 LOG(INFO) << "run another pose graph!" << endl;
@@ -112,11 +97,9 @@ namespace ldso
             }
 
             usleep(5000);
-            LOG(INFO) << "loop closing finished!" << endl;
         }
 
         finished = true;
-        LOG(INFO) << "loop closing thread finished!" << endl;
     }
 
     bool LoopClosing::DetectLoop(shared_ptr<Frame> &frame)
@@ -319,8 +302,7 @@ namespace ldso
 
         LOG(INFO) << "computing optimized pose" << endl;
         int TH_HIGH = 50;
-        // vector<shared_ptr<Frame>> activeFrames = fullSystem->GetActiveFrames();
-        vector<shared_ptr<Frame>> activeFrames = system_server->GetActiveFrames();
+        vector<shared_ptr<Frame>> activeFrames = fullSystem->GetActiveFrames();
         // make the idepth map
         memset(idepthMap, 0, sizeof(float) * wG[0] * hG[0]);
 
@@ -330,7 +312,7 @@ namespace ldso
         // SE3 Tcw = currentKF->getPose();
         for (shared_ptr<Frame> fh : activeFrames)
         {
-            if (fh->kfId == currentKF->kfId)
+            if (fh == currentKF)
                 continue;
             for (shared_ptr<Feature> feat : fh->features)
             {
@@ -338,12 +320,12 @@ namespace ldso
                     feat->point->status == Point::PointStatus::ACTIVE)
                 {
                     shared_ptr<PointHessian> ph = feat->point->mpPH;
-                    if (ph->lastResiduals[0].first != nullptr && ph->lastResiduals[0].second == ResState::IN)
+                    if (ph->lastResiduals[0].first != 0 && ph->lastResiduals[0].second == ResState::IN)
                     {
                         shared_ptr<PointFrameResidual> r = ph->lastResiduals[0].first;
-                        if (r->target_kf_id != currentKF->frameHessian->frameID)
+                        if (r->target.lock() != currentKF->frameHessian)
                             continue;
-
+                          
                         int u = r->centerProjectedTo[0] + 0.5f;
                         int v = r->centerProjectedTo[1] + 0.5f;
 

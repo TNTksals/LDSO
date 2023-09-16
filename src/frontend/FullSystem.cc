@@ -2,16 +2,6 @@
 #include "Frame.h"
 #include "Point.h"
 
-#include "ldso/CameraData.h"
-#include "ldso/FrameHessianData.h"
-#include "ldso/PointFrameResidualData.h"
-#include "ldso/PointHessianData.h"
-#include "ldso/PointData.h"
-#include "ldso/FeatureData.h"
-#include "ldso/FrameData.h"
-#include "ldso/RelPoseData.h"
-#include "ldso/KeyFrame.h"
-
 #include "frontend/FullSystem.h"
 #include "frontend/CoarseInitializer.h"
 #include "frontend/CoarseTracker.h"
@@ -21,6 +11,16 @@
 #include "internal/GlobalCalib.h"
 #include "internal/GlobalFuncs.h"
 #include "internal/OptimizationBackend/EnergyFunctional.h"
+
+#include "ldso/CameraData.h"
+#include "ldso/FrameHessianData.h"
+#include "ldso/PointFrameResidualData.h"
+#include "ldso/PointHessianData.h"
+#include "ldso/PointData.h"
+#include "ldso/FeatureData.h"
+#include "ldso/FrameData.h"
+#include "ldso/RelPoseData.h"
+#include "ldso/KeyFrame.h"
 
 #include <opencv2/features2d/features2d.hpp>
 #include <iomanip>
@@ -60,16 +60,16 @@ namespace ldso
         pixelSelector = shared_ptr<PixelSelector>(new PixelSelector(wG[0], hG[0]));
         selectionMap = new float[wG[0] * hG[0]];
 
-        // if (setting_enableLoopClosing)
-        // {
-        //     loopClosing = shared_ptr<LoopClosing>(new LoopClosing(this));
-        //     if (setting_fastLoopClosing)
-        //         LOG(INFO) << "Use fast loop closing" << endl;
-        // }
-        // else
-        // {
-        //     LOG(INFO) << "loop closing is disabled" << endl;
-        // }
+        if (setting_enableLoopClosing)
+        {
+            loopClosing = shared_ptr<LoopClosing>(new LoopClosing(this));
+            if (setting_fastLoopClosing)
+                LOG(INFO) << "Use fast loop closing" << endl;
+        }
+        else
+        {
+            LOG(INFO) << "loop closing is disabled" << endl;
+        }
     }
 
     FullSystem::~FullSystem()
@@ -451,19 +451,19 @@ namespace ldso
 
         mappingThread.join();
 
-        // if (setting_enableLoopClosing)
-        // {
-        //     loopClosing->SetFinish(true);
-        //     if (globalMap->NumFrames() > 4)
-        //     {
-        //         globalMap->lastOptimizeAllKFs();
-        //     }
-        // }
+        if (setting_enableLoopClosing)
+        {
+            loopClosing->SetFinish(true);
+            if (globalMap->NumFrames() > 4)
+            {
+                globalMap->lastOptimizeAllKFs();
+            }
+        }
 
         // Update world points in case optimization hasn't run (with all keyframes)
         // It would maybe be better if the 3d points would always be updated as soon
         // as the poses or depths are updated (no matter if in PGO or in sliding window BA)
-        globalMap->UpdateAllWorldPoints(0);
+        globalMap->UpdateAllWorldPoints();
     }
 
     void FullSystem::makeKeyFrame(shared_ptr<FrameHessian> fh)
@@ -641,7 +641,6 @@ namespace ldso
             }
         }
 
-        // TODO
         // visualization
         if (viewer)
             viewer->publishKeyframes(frames, false, Hcalib->mpCH);
@@ -661,10 +660,10 @@ namespace ldso
 
         // add current kf into map and detect loops
         globalMap->AddKeyFrame(fh->frame);
-        // if (setting_enableLoopClosing)
-        // {
-        //     loopClosing->InsertKeyFrame(frame);
-        // }
+        if (setting_enableLoopClosing)
+        {
+            loopClosing->InsertKeyFrame(frame);
+        }
         LOG(INFO) << "make keyframe done" << endl;
     }
 

@@ -19,8 +19,6 @@ namespace ldso
 
     class FullSystem;
 
-    class SystemServer;
-
     /**
      * The global map contains all keyframes and map points, even if they are marginalized or outdated.
      * The map can be saved to and loaded from disk, if you wanna reuse it.
@@ -32,8 +30,6 @@ namespace ldso
     {
     public:
         Map(FullSystem *fs) : fullsystem(fs) {}
-
-        Map(SystemServer *system_server) : system_server(system_server) {}
 
         /**
          * add a keyframe into the global map
@@ -49,16 +45,11 @@ namespace ldso
          */
         bool OptimizeALLKFs();
 
-        /**
-         * optimize pose graph on all kfs after odometry loop is done
-        */
+        // optimize pose graph on all kfs after odometry loop is done
         void lastOptimizeAllKFs();
 
-        /**
-         * update the cached 3d position of all points.
-         * @param flag 0: used on agent, 1: used on server.
-        */
-        void UpdateAllWorldPoints(int flag);
+        /// update the cached 3d position of all points.
+        void UpdateAllWorldPoints();
 
         /**
          * get number of frames stored in global map
@@ -96,7 +87,6 @@ namespace ldso
         mutex mutexPoseGraph;
 
         FullSystem *fullsystem = nullptr;
-        SystemServer *system_server = nullptr;
     };
 
 }

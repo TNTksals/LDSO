@@ -69,11 +69,11 @@ namespace ldso
             return frames;
         }
 
-        void RefreshGUI()
-        {
-            if (viewer)
-                viewer->refreshAll();
-        }
+        // void RefreshGUI()
+        // {
+        //     if (viewer)
+        //         viewer->refreshAll();
+        // }
 
     private:
         // 关键帧信息回调函数
@@ -182,7 +182,6 @@ namespace ldso
 
 
         shared_ptr<ORBVocabulary> voc;
-        // ORB m_orb;
         // shared_ptr<Map> m_map;
         // shared_ptr<LoopClosing> m_loopClosing;
         // queue<shared_ptr<Frame>> m_loopClosingQueue;
@@ -204,22 +203,22 @@ namespace ldso
     public:
         shared_ptr<Map> globalMap = nullptr; // global map
 
-    public:
-        // ========================== loop closing ==================================== //
-        shared_ptr<ORBVocabulary> vocab = nullptr;      // vocabulary
-        shared_ptr<LoopClosing> loop_closing = nullptr; // loop closing
+    // public:
+    //     // ========================== loop closing ==================================== //
+    //     shared_ptr<ORBVocabulary> vocab = nullptr;      // vocabulary
+    //     shared_ptr<LoopClosing> loop_closing = nullptr; // loop closing
 
-        // ========================= visualization =================================== //
-    public:
-        void setViewer(shared_ptr<PangolinDSOViewer> v)
-        {
-            viewer = v;
-            if (viewer)
-                viewer->setMap(globalMap);
-        }
+    //     // ========================= visualization =================================== //
+    // public:
+    //     void setViewer(shared_ptr<PangolinDSOViewer> v)
+    //     {
+    //         viewer = v;
+    //         if (viewer)
+    //             viewer->setMap(globalMap);
+    //     }
 
-    private:
-        shared_ptr<PangolinDSOViewer> viewer = nullptr;
+    // private:
+    //     shared_ptr<PangolinDSOViewer> viewer = nullptr;
 
     };
 

@@ -2,7 +2,6 @@
 #include "Feature.h"
 
 #include "frontend/FullSystem.h"
-#include "backend/SystemServer.h"
 #include "internal/GlobalCalib.h"
 #include "internal/FrameHessian.h"
 #include "internal/PointHessian.h"
@@ -68,7 +67,7 @@ namespace ldso
         return true;
     }
 
-    void Map::UpdateAllWorldPoints(int flag)
+    void Map::UpdateAllWorldPoints()
     {
         unique_lock<mutex> lock(mutexPoseGraph);
         for (shared_ptr<Frame> frame : frames)
@@ -77,10 +76,7 @@ namespace ldso
             {
                 if (feat->point)
                 {
-                    if (flag == 0)
-                        feat->point->ComputeWorldPos(0);
-                    else
-                        feat->point->ComputeWorldPos(1);
+                    feat->point->ComputeWorldPos();
                 }
             }
         }
@@ -172,7 +168,7 @@ namespace ldso
             {
                 if (feat->point)
                 {
-                    feat->point->ComputeWorldPos(1);
+                    feat->point->ComputeWorldPos();
                 }
             }
         }
@@ -184,11 +180,8 @@ namespace ldso
             latestOptimizedKfId = currentKF->kfId;
         }
 
-        // if (fullsystem)
-        //     fullsystem->RefreshGUI();
-
-        if (system_server)
-            system_server->RefreshGUI();
+        if (fullsystem)
+            fullsystem->RefreshGUI();
     }
 
 }

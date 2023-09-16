@@ -338,7 +338,7 @@ namespace ldso
         // ========================== loop closing ==================================== //
     public:
         shared_ptr<ORBVocabulary> vocab = nullptr;     // vocabulary
-        // shared_ptr<LoopClosing> loopClosing = nullptr; // loop closing
+        shared_ptr<LoopClosing> loopClosing = nullptr; // loop closing
 
         // ========================= visualization =================================== //
     public:

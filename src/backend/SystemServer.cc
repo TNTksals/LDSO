@@ -12,25 +12,16 @@ namespace ldso
 {
 
     SystemServer::SystemServer(shared_ptr<ORBVocabulary> voc, ros::NodeHandle &nh) : coarseDistanceMap(new CoarseDistanceMap(wG[0], hG[0])),
-                                                                                     Hcalib(new Camera(fxG[0], fyG[0], cxG[0], cyG[0])),
-                                                                                     globalMap(new Map(this)),
-                                                                                     vocab(voc)
+                                                                                     Hcalib(new Camera(fxG[0], fyG[0], cxG[0], cyG[0]))
+                                                                                    //  globalMap(new Map(this)),
+                                                                                    //  vocab(voc)
     {
         this->nh = ros::NodeHandle(nh, "system_server");
 
         Hcalib->CreateCH(Hcalib);
 
-        loop_closing = shared_ptr<LoopClosing>(new LoopClosing(this));
-        if (setting_fastLoopClosing)
-            LOG(INFO) << "Use fast loop closing" << endl;
-
         this->kf_sub = this->nh.subscribe("/keyframe", 1000, &SystemServer::keyframeCallback, this);
 
-        // // 启动地图匹配线程
-        // m_mapMatchingThread = boost::thread(&SystemServer::mapMatchingThreadFunc, this);
-
-        // // 启动地图匹配线程
-        // m_mapMatchingThread = boost::thread(&SystemServer::mapMatchingThreadFunc, this);
     }
 
     void SystemServer::keyframeCallback(const ldso::KeyFrame &kf_msg)
@@ -103,23 +94,23 @@ namespace ldso
                 }
                 // ROS_INFO("grab point hessian.");
 
-                if (fd.point.host_feat_u != -1 || fd.point.host_feat_v != -1)
-                {
-                    feat->point->host_feature = std::make_shared<Feature>();
-                    // feat->point->host_feature = std::shared_ptr<Feature>(new Feature());
-                    feat->point->host_feature->uv = Vec2f(fd.point.host_feat_u, fd.point.host_feat_v);
-                    feat->point->host_feature->invD = fd.point.host_feat_invD;
-                    feat->point->host_feature->host_frame = shared_ptr<Frame>(new Frame(fd.point.hostfeat_hostframe_timestamp));
-                    // feat->point->host_feature->host_frame = std::make_shared<Frame>(fd.point.hostfeat_hostframe_timestamp);
-                    memcpy(T.data(), fd.point.hostfeat_hostframe_tcw_opti.data.data(), sizeof(double) * 16);
-                    feat->point->host_feature->host_frame->setPoseOpti(Sim3(T));
-                    // cout << T << endl;
-                }
+                // if (fd.point.host_feat_u != -1 || fd.point.host_feat_v != -1)
+                // {
+                //     feat->point->host_feature = std::make_shared<Feature>();
+                //     // feat->point->host_feature = std::shared_ptr<Feature>(new Feature());
+                //     feat->point->host_feature->uv = Vec2f(fd.point.host_feat_u, fd.point.host_feat_v);
+                //     feat->point->host_feature->invD = fd.point.host_feat_invD;
+                //     feat->point->host_feature->host_frame = shared_ptr<Frame>(new Frame(fd.point.hostfeat_hostframe_timestamp));
+                //     // feat->point->host_feature->host_frame = std::make_shared<Frame>(fd.point.hostfeat_hostframe_timestamp);
+                //     memcpy(T.data(), fd.point.hostfeat_hostframe_tcw_opti.data.data(), sizeof(double) * 16);
+                //     feat->point->host_feature->host_frame->setPoseOpti(Sim3(T));
+                //     // cout << T << endl;
+                // }
                 // ROS_INFO("grab host feature.");
             }
 
-            if (fd.is_ip)
-                feat->is_ip = true;
+            // if (fd.is_ip)
+            //     feat->is_ip = true;
 
             frame->features.emplace_back(feat);
         }
@@ -171,11 +162,11 @@ namespace ldso
         }
 
         // visualization
-        if (viewer)
-            viewer->publishKeyframes(this->frames, false, this->Hcalib->mpCH);
+        // if (viewer)
+        //     viewer->publishKeyframes(this->frames, false, this->Hcalib->mpCH);
 
         globalMap->AddKeyFrame(frame);
-        loop_closing->InsertKeyFrame(frame);
+        // loop_closing->InsertKeyFrame(frame);
 
         // // 将帧添加到子图中
         // m_map->addFrame(frame);
