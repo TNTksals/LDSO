@@ -8,6 +8,9 @@
 
 #include <glog/logging.h>
 
+#include <ros/ros.h>
+#include <ros/package.h>
+
 #include "frontend/FullSystem.h"
 #include "DatasetReader.h"
 
@@ -20,12 +23,13 @@
 using namespace std;
 using namespace ldso;
 
-std::string vignette = "/media/gaoxiang/Data1/Dataset/TUM-MONO/sequence_31/vignette.png";
-std::string gammaCalib = "/media/gaoxiang/Data1/Dataset/TUM-MONO/sequence_31/pcalib.txt";
-std::string source = "/media/gaoxiang/Data1/Dataset/TUM-MONO/sequence_31/";
-std::string calib = "/media/gaoxiang/Data1/Dataset/TUM-MONO/sequence_31/camera.txt";
-std::string output_file = "./results.txt";
-std::string vocPath = "./vocab/orbvoc.dbow3";
+std::string package_path;
+std::string vignette = "/sequence_31/vignette.png";
+std::string gammaCalib = "/sequence_31/pcalib.txt";
+std::string source = "/sequence_31/";
+std::string calib = "/sequence_31/camera.txt";
+std::string output_file = "/results.txt";
+std::string vocPath = "/vocab/orbvoc.dbow3";
 
 double rescale = 1;
 bool reversePlay = false;
@@ -320,6 +324,20 @@ void parseArgument(char *arg)
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "run_tmu_mono_agent");
+
+    // get the path of the 'ldso' package and update config path
+    package_path = ros::package::getPath("ldso");
+    if (package_path.empty()) 
+    {
+        LOG(ERROR) << "Failed to find package path for ldso!" << endl;
+        exit(-1);
+    }
+    vignette = package_path + vignette;
+    gammaCalib = package_path + gammaCalib;
+    source = package_path + source;
+    calib = package_path + calib;
+    output_file = package_path + output_file;
+    vocPath = package_path + vocPath; 
 
     FLAGS_colorlogtostderr = true;
     for (int i = 1; i < argc; i++)

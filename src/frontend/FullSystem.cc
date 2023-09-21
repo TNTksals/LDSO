@@ -50,7 +50,11 @@ namespace ldso
                   << endl;
 
         nh = ros::NodeHandle("~");
-        kf_pub = nh.advertise<ldso::KeyFrame>("/keyframe", 1000);
+
+        client_id = this->getParam<int>(nh, "client_id", -1);
+        topic_name_kf_pub = this->getParam<string>(nh, "keyframe_topic_name_pub", string("nospec"));
+
+        kf_pub = nh.advertise<ldso::KeyFrame>(topic_name_kf_pub, 100);
 
         Hcalib->CreateCH(Hcalib);
         lastCoarseRMSE.setConstant(100);

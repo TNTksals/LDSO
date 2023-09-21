@@ -284,6 +284,17 @@ namespace ldso
         // =============================== ROS interface ================================== //
         ros::NodeHandle nh;
         ros::Publisher kf_pub;
+        string topic_name_kf_pub;
+        size_t client_id;
+
+    public:
+        template<typename T>
+        inline T getParam(const ros::NodeHandle &nh, const std::string &param_name, const T &default_val)
+        {
+            T param_val;
+            nh.param<T>(param_name, param_val, default_val);
+            return param_val;
+        }
 
     private:
         // data

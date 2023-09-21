@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<launch>
+    <group ns="lccdslam">
+
+        <node pkg="ldso" type="run_dso_tum_mono" name="client0_tum_mono" output="screen"
+            args="preset=0
+                  files=$(find ldso)/sequence_34/images.zip
+                  vignette=$(find ldso)/sequence_34/vignette.png
+                  calib=$(find ldso)/sequence_34/camera.txt
+                  gamma=$(find ldso)/sequence_34/pcalib.txt">
+
+        <!-- ++++++++++++++++++++++++++++++++++++++++++++++ -->
+        <!-- Agent Specific Params - !!!MUST BE ADJUSTED!!! -->
+        <param name="~client_id" type="int" value="0" />
+
+        <param name="~keyframe_topic_name_pub" type="string" value="keyframe_out_server0" />
+
+        </node>
+
+    </group>
+</launch>

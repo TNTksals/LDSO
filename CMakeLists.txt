@@ -37,6 +37,7 @@ find_package(Pangolin REQUIRED)
 find_package(LibZip QUIET)
 
 find_package(catkin REQUIRED COMPONENTS
+  roslib
   roscpp
   std_msgs
   geometry_msgs
@@ -69,6 +70,7 @@ catkin_package(
   INCLUDE_DIRS
   include
   CATKIN_DEPENDS
+  roslib
   roscpp
   std_msgs
   geometry_msgs
