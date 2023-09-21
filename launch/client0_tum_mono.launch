@@ -2,7 +2,7 @@
 <launch>
     <group ns="lccdslam">
 
-        <node pkg="ldso" type="run_dso_tum_mono" name="client0_tum_mono" output="screen"
+        <node pkg="ldso" type="client_tum_mono" name="client0_tum_mono" output="screen"
             args="preset=0
                   files=$(find ldso)/sequence_34/images.zip
                   vignette=$(find ldso)/sequence_34/vignette.png
